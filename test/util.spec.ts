@@ -53,6 +53,36 @@ describe("util functions", () => {
     });
   });
 
+  describe("#verifyAppleGitVersion()", () => {
+    const gitRawStub = sinon.stub();
+    const { verifyGitVersion } = proxyquire("../src/util", {
+      execa: (...args: any[]) => gitRawStub(...args)
+    });
+
+    beforeEach(() => {
+      gitRawStub.withArgs("git", ["--version"]).resolves({
+        stderr: null,
+        stdout: "git version 2.21.0 (Apple Git-122)"
+      });
+    });
+
+    afterEach(() => {
+      gitRawStub.reset();
+    });
+
+    it("gets Git version", async () => {
+      try {
+        const result = await verifyGitVersion();
+
+        result.major.should.equal(2);
+        result.minor.should.equal(21);
+        result.patch.should.equal(0);
+      } catch (e) {
+        should.not.exist(e);
+      }
+    });
+  });
+
   describe("#verifyOptions()", () => {
     it("throws if an option isn't supplied", () => {
       (() =>

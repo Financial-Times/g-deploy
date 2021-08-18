@@ -21,7 +21,7 @@ export const git = async (args: string[]) => {
  * Verifies the system's git is at least v1.7.0.
  */
 export const verifyGitVersion = async () => {
-  const gitVersionStr = (await git(["--version"])).replace(/[^\d.]/g, "");
+  const gitVersionStr = (await git(["--version"])).replace(/git version ((\d)+\.(\d)+\.(\d)+).*/, "$1");
 
   const gitVersion = semver(gitVersionStr);
 
