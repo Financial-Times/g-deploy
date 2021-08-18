@@ -94,7 +94,7 @@ Run `yarn build -- --watch` and `yarn test -- --watch` in separate terminal tabs
 
 ### Publishing a new version to npm
 
-- Make sure you're on master: `git checkout master`
+- Make sure you're on main: `git checkout main`
 - `git fetch --tags`
 - `git tag v<new version number>`
 - `git push origin v<new version number>`
