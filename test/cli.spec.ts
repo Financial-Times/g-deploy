@@ -7,7 +7,6 @@
  */
 
 import * as chai from "chai";
-import * as sinon from "sinon";
 import cli from "../src/cli";
 
 const should = chai.should();

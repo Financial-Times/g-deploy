@@ -77,7 +77,7 @@ export default class Deployer extends EventEmitter {
         return JSON.parse(
           readFileSync(resolve(localDir, REV_MANIFEST_FILENAME), "utf-8")
         );
-      } catch (error) {
+      } catch (error: any) {
         if (error.code === "ENOENT") {
           return undefined;
         }

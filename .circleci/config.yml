@@ -2,7 +2,7 @@ version: 2
 references:
   default_container_config: &default_container_config
     docker:
-      - image: node:8
+      - image: cimg/node:14.18
 
   attach_workspace: &attach_workspace
     attach_workspace:
@@ -32,13 +32,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Upgrade npm
-          command: npm i -g npm
-      - *restore_node_modules
-      - run:
           name: Install dependencies
-          command: npm ci --unsafe-perm
-      - *cache_node_modules
+          command: npm ci
       - persist_to_workspace:
           root: .
           paths:
