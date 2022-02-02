@@ -2,25 +2,11 @@ version: 2
 references:
   default_container_config: &default_container_config
     docker:
-      - image: node:8
+      - image: cimg/node:14.18
 
   attach_workspace: &attach_workspace
     attach_workspace:
       at: ~/project
-
-  npm_cache_key: &npm_cache_key v1-dependency-npm-{{ checksum "package-lock.json" }}
-
-  restore_node_modules: &restore_node_modules
-    restore_cache:
-      keys:
-        - *npm_cache_key
-        - v1-dependency-npm-
-
-  cache_node_modules: &cache_node_modules
-    save_cache:
-      key: *npm_cache_key
-      paths:
-        - $HOME/.npm
 
   only_version_tags: &only_version_tags
     tags:
@@ -32,13 +18,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Upgrade npm
-          command: npm i -g npm
-      - *restore_node_modules
-      - run:
           name: Install dependencies
-          command: npm ci --unsafe-perm
-      - *cache_node_modules
+          command: npm ci
       - persist_to_workspace:
           root: .
           paths:
@@ -50,12 +31,7 @@ jobs:
       - *attach_workspace
       - run:
           name: Run tests
-          command: npm test && npm run mocha:junit
-      - run:
-          name: Upload coverage reports
-          command: npm run report-coverage
-      - store_test_results:
-          path: test-results
+          command: npm test
 
   release_npm:
     <<: *default_container_config

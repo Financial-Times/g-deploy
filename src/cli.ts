@@ -3,7 +3,7 @@
  * Main CLI interface
  */
 
-import chalk from "chalk";
+import * as chalk from "chalk";
 import * as inquirer from "inquirer";
 import * as meow from "meow";
 import * as parseGitHubURL from "parse-github-url";
@@ -113,7 +113,7 @@ export default async () => {
         options.awsKey = AWS_KEY_PROD;
         options.awsSecret = AWS_SECRET_PROD;
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(`Vault error: ${e.message}`);
     }
   }

@@ -3,7 +3,7 @@
  * Help screen documentation
  */
 
-import chalk from "chalk";
+import * as chalk from "chalk";
 const { cyan, grey } = chalk;
 export default `
   ${grey(">")} ft-graphics-deploy ${grey("[FLAGS...]")}

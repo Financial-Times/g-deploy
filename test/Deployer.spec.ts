@@ -188,8 +188,7 @@ describe("Deployer class", () => {
       try {
         await trailing.execute();
         throw new Error("This should have already thrown");
-      } catch (e) {
-        should.exist(e);
+      } catch (e: any) {
         e.message.should.equal(
           "Please provide `path` without leading or trailing slashes."
         );
@@ -198,8 +197,7 @@ describe("Deployer class", () => {
       try {
         await leading.execute();
         throw new Error("This should have already thrown");
-      } catch (e) {
-        should.exist(e);
+      } catch (e: any) {
         e.message.should.equal(
           "Please provide `path` without leading or trailing slashes."
         );
