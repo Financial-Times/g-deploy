@@ -44,17 +44,6 @@ jobs:
           name: Publish npm package
           command: ./node_modules/.bin/npm-prepublish --verbose && npm publish --access public
 
-  release_ghpr:
-    <<: *default_container_config
-    steps:
-      - *attach_workspace
-      - run:
-          name: Setup npm credentials
-          command: printf "registry=https://npm.pkg.github.com/\n//npm.pkg.github.com/:_authToken=${GHPR_AUTH_TOKEN}" > ${HOME}/.npmrc
-      - run:
-          name: Publish npm package
-          command: ./node_modules/.bin/npm-prepublish --verbose && npm publish
-
 workflows:
   version: 2
   build-and-release:
@@ -68,14 +57,6 @@ workflows:
           filters:
             <<: *only_version_tags
       - release_npm:
-          requires:
-            - install
-            - test
-          filters:
-            <<: *only_version_tags
-            branches:
-              ignore: /.*/
-      - release_ghpr:
           requires:
             - install
             - test
