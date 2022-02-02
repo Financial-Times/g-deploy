@@ -8,20 +8,6 @@ references:
     attach_workspace:
       at: ~/project
 
-  npm_cache_key: &npm_cache_key v1-dependency-npm-{{ checksum "package-lock.json" }}
-
-  restore_node_modules: &restore_node_modules
-    restore_cache:
-      keys:
-        - *npm_cache_key
-        - v1-dependency-npm-
-
-  cache_node_modules: &cache_node_modules
-    save_cache:
-      key: *npm_cache_key
-      paths:
-        - $HOME/.npm
-
   only_version_tags: &only_version_tags
     tags:
       only: /^v.*$/
@@ -45,12 +31,7 @@ jobs:
       - *attach_workspace
       - run:
           name: Run tests
-          command: npm test && npm run mocha:junit
-      - run:
-          name: Upload coverage reports
-          command: npm run report-coverage
-      - store_test_results:
-          path: test-results
+          command: npm test
 
   release_npm:
     <<: *default_container_config
