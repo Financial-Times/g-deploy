@@ -95,6 +95,7 @@ export default async () => {
   }
 
   if (
+    !process.env.DOPPLER_TOKEN && // Don't overwrite Doppler values
     options.vaultRole &&
     options.vaultSecret &&
     options.vaultEndpoint &&
