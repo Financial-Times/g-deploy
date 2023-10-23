@@ -6,7 +6,7 @@
 import * as chalk from "chalk";
 const { cyan, grey } = chalk;
 export default `
-  ${grey(">")} ft-graphics-deploy ${grey("[FLAGS...]")}
+  ${grey(">")} g-deploy ${grey("[FLAGS...]")}
   ${grey(
     "────────────────────────────────────────────────────────────────────"
   )}
@@ -15,15 +15,8 @@ export default `
   ${grey(
     "────────────────────────────────────────────────────────────────────"
   )}
-  ${cyan("Vault settings")}
-  ${grey(`If not provided these will be inferred from environment variables following
-  each flag.`)}
-  --vault-endpoint (VAULT_ENDPOINT)
-  --vault-role (VAULT_ROLE)
-  --vault-secret (VAULT_SECRET)
-  --vault-secret-path (VAULT_SECRET_PATH)
 
-  ${cyan("AWS settings (Deprecated for FT projects — use Vault instead)")}
+  ${cyan("AWS settings")}
   ${grey(`If not provided, these settings are taken from env vars
   ("AWS_KEY_PROD", "AWS_SECRET_PROD", etc.)`)}
     --aws-key
@@ -46,4 +39,5 @@ export default `
     --get-branch-url - instead of deploying, just print the URL it would deploy to
     --get-commit-url - as above, but get the commit-specific URL
     --confirm - skip the confirmation dialogue when deploying
+    --write-versions-json - write a VERSIONS.json file at the project base containing every version number
 `;

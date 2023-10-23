@@ -32,6 +32,7 @@ interface ICLIFlags {
   vaultRole?: string;
   vaultSecret?: string;
   vaultSecretPath?: string;
+  writeVersionsJson?: boolean;
 }
 
 export default async () => {
@@ -50,7 +51,8 @@ export default async () => {
     vaultEndpoint: process.env.VAULT_ENDPOINT,
     vaultRole: process.env.VAULT_ROLE,
     vaultSecret: process.env.VAULT_SECRET,
-    vaultSecretPath: process.env.VAULT_SECRET_PATH
+    vaultSecretPath: process.env.VAULT_SECRET_PATH,
+    writeVersionsJson: process.env.WRITE_VERSIONS_JSON || false,
   };
 
   const options = { ...defaults, ...(cli.flags as ICLIFlags) };
@@ -61,11 +63,9 @@ export default async () => {
 
     // infer the project name from the GitHub repo name
     if (!options.projectName) {
-      const originURL = (await git([
-        "config",
-        "--get",
-        "remote.origin.url"
-      ])).trim();
+      const originURL = (
+        await git(["config", "--get", "remote.origin.url"])
+      ).trim();
 
       const { repo, host } = parseGitHubURL(originURL) as parseGitHubURL.Result;
 
@@ -85,12 +85,9 @@ export default async () => {
 
     // use the name of the branch we're on now
     if (!options.branchName) {
-      options.branchName = (await git([
-        "rev-parse",
-        "--abbrev-ref",
-        "--verify",
-        "HEAD"
-      ])).trim();
+      options.branchName = (
+        await git(["rev-parse", "--abbrev-ref", "--verify", "HEAD"])
+      ).trim();
     }
   }
 
