@@ -145,7 +145,7 @@ describe("util functions", () => {
     it("lists Git tags", async () => {
       try {
         const result = await listGitTags();
-        result.should.equal(["v1.0.0", "v2.0.0", "v3.0.0"]);
+        result.should.eql(["v1.0.0", "v2.0.0", "v3.0.0"]);
       } catch (e) {
         should.not.exist(e);
       }

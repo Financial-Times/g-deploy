@@ -23,6 +23,9 @@ describe("Deployer class", () => {
         return { putObject: putObjectStub };
       },
     },
+    "./util": {
+      listGitTags: async () => ["v1.0.0", "v2.0.0", "v3.0.0"],
+    },
   });
   beforeEach(() => {
     putObjectStub.returns({ promise: () => Promise.resolve(true) });
@@ -205,30 +208,20 @@ describe("Deployer class", () => {
     });
 
     it("writes VERSIONS.json", async () => {
-      const gitRawStub = sinon.stub();
-      const { listGitTags } = proxyquire("../src/util", {
-        execa: (...args: any[]) => gitRawStub(...args),
-      });
-
-      before(() => {
-        gitRawStub.withArgs("git", ["tag"]).resolves({
-          stderr: null,
-          stdout: "v1.0.0\nv2.0.0\nv3.0.0",
-        });
-      });
-
-      after(() => {
-        gitRawStub.reset();
-      });
-
       const newInst = new Deployer({
+        assetsPrefix: "https://ig.ft.com/v2/__assets/",
+        awsRegion: "eu-west-1",
+        bucketName: "test-bucket",
+        localDir: resolve(__dirname, "..", "fixture", "dist"),
+        projectName: "test-project",
+        targets: ["test"],
         writeVersionsJson: true,
       });
 
-      const res = await newInst.execute();
+      await newInst.execute();
       putObjectStub.should.have.been.calledWith({
         ACL: "public-read",
-        Body: '["v1.0.0", "v2.0.0", "v3.0.0"]',
+        Body: '["v1.0.0","v2.0.0","v3.0.0"]',
         Bucket: "test-bucket",
         CacheControl: "max-age=60",
         ContentType: "application/json",
