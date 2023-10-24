@@ -27,6 +27,7 @@ interface ICLIFlags {
   preview?: string;
   projectName?: string | null;
   sha?: string;
+  tag?: string;
   targets?: Array<string | undefined>;
   vaultEndpoint?: string;
   vaultRole?: string;
@@ -48,6 +49,7 @@ export default async () => {
     localDir: "dist",
     path: undefined,
     preview: false,
+    tag: undefined,
     vaultEndpoint: process.env.VAULT_ENDPOINT,
     vaultRole: process.env.VAULT_ROLE,
     vaultSecret: process.env.VAULT_SECRET,
@@ -130,8 +132,10 @@ export default async () => {
     throw new Error("branchName not set");
   }
 
-  // convert "sha" and "branchName" options into an array of targets
-  options.targets = [options.branchName, options.sha];
+  // convert "sha", "branchName" and "tag" options into an array of targets
+  options.targets = [options.branchName, options.sha, options.tag].filter(
+    (i) => i
+  );
 
   // Ensure the required options exist; throw otherwise
   verifyOptions(options);
@@ -151,9 +155,10 @@ export default async () => {
       `  local dir: ${options.localDir}\n` +
       `  project name: ${options.projectName}\n` +
       `  branch name: ${options.branchName as string}\n` +
+      `  tag: ${options.tag}\n` +
       `  sha: ${options.sha as string}\n` +
       `  assets prefix: ${options.assetsPrefix}\n` +
-      `  preview: ${options.preview}`
+      `  preview: ${options.preview}\n`
   );
 
   if (options.path) {
