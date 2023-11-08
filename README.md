@@ -24,15 +24,8 @@ $ g-deploy --help
   All flags are optional when this command is run from a typical FT
   Graphics project repo in CI.
   ────────────────────────────────────────────────────────────────────
-  Vault settings
-  If not provided these will be inferred from environment variables following
-  each flag.
-  --vault-endpoint ($VAULT_ENDPOINT)
-  --vault-role ($VAULT_ROLE)
-  --vault-secret ($VAULT_SECRET)
-  --vault-secret-path ($VAULT_SECRET_PATH)
 
-  AWS settings (Deprecated for FT projects — use Vault instead)
+  AWS settings
   If not provided, these settings are taken from env vars
   ("AWS_KEY_PROD", "AWS_SECRET_PROD", etc.)
     --aws-key
@@ -56,6 +49,7 @@ $ g-deploy --help
     --get-branch-url - instead of deploying, just print the URL it would deploy to
     --get-commit-url - as above, but get the commit-specific URL
     --confirm - skip the confirmation dialogue when deploying
+    --write-versions-json - writes a VERSIONS.json file containing all published repo versions
 ```
 
 ## JavaScript API

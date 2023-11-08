@@ -27,11 +27,13 @@ interface ICLIFlags {
   preview?: string;
   projectName?: string | null;
   sha?: string;
+  tag?: string;
   targets?: Array<string | undefined>;
   vaultEndpoint?: string;
   vaultRole?: string;
   vaultSecret?: string;
   vaultSecretPath?: string;
+  writeVersionsJson?: boolean;
 }
 
 export default async () => {
@@ -47,10 +49,12 @@ export default async () => {
     localDir: "dist",
     path: undefined,
     preview: false,
+    tag: undefined,
     vaultEndpoint: process.env.VAULT_ENDPOINT,
     vaultRole: process.env.VAULT_ROLE,
     vaultSecret: process.env.VAULT_SECRET,
-    vaultSecretPath: process.env.VAULT_SECRET_PATH
+    vaultSecretPath: process.env.VAULT_SECRET_PATH,
+    writeVersionsJson: process.env.WRITE_VERSIONS_JSON || false,
   };
 
   const options = { ...defaults, ...(cli.flags as ICLIFlags) };
@@ -61,11 +65,9 @@ export default async () => {
 
     // infer the project name from the GitHub repo name
     if (!options.projectName) {
-      const originURL = (await git([
-        "config",
-        "--get",
-        "remote.origin.url"
-      ])).trim();
+      const originURL = (
+        await git(["config", "--get", "remote.origin.url"])
+      ).trim();
 
       const { repo, host } = parseGitHubURL(originURL) as parseGitHubURL.Result;
 
@@ -85,12 +87,9 @@ export default async () => {
 
     // use the name of the branch we're on now
     if (!options.branchName) {
-      options.branchName = (await git([
-        "rev-parse",
-        "--abbrev-ref",
-        "--verify",
-        "HEAD"
-      ])).trim();
+      options.branchName = (
+        await git(["rev-parse", "--abbrev-ref", "--verify", "HEAD"])
+      ).trim();
     }
   }
 
@@ -133,8 +132,10 @@ export default async () => {
     throw new Error("branchName not set");
   }
 
-  // convert "sha" and "branchName" options into an array of targets
-  options.targets = [options.branchName, options.sha];
+  // convert "sha", "branchName" and "tag" options into an array of targets
+  options.targets = [options.branchName, options.sha, options.tag].filter(
+    (i) => i
+  );
 
   // Ensure the required options exist; throw otherwise
   verifyOptions(options);
@@ -154,9 +155,10 @@ export default async () => {
       `  local dir: ${options.localDir}\n` +
       `  project name: ${options.projectName}\n` +
       `  branch name: ${options.branchName as string}\n` +
+      `  tag: ${options.tag}\n` +
       `  sha: ${options.sha as string}\n` +
       `  assets prefix: ${options.assetsPrefix}\n` +
-      `  preview: ${options.preview}`
+      `  preview: ${options.preview}\n`
   );
 
   if (options.path) {

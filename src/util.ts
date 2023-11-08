@@ -43,7 +43,7 @@ export const verifyOptions = ({
   awsKey,
   awsSecret,
   awsRegion,
-  bucketName
+  bucketName,
 }: IVerifyOptions) => {
   if (!awsKey) {
     throw new Error("Could not find an AWS access key ID.");
@@ -69,3 +69,10 @@ interface IVerifyOptions {
   bucketName?: string;
   [key: string]: any;
 }
+
+export const listGitTags = async () =>
+  (await git(["tag"]))
+    .split("\n")
+    .map((v) => v.trim())
+    .filter((v) => /^v\d/.test(v))
+    .sort();

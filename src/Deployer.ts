@@ -10,6 +10,7 @@ import { createReadStream, readFileSync, writeFileSync } from "fs";
 import { sync as glob } from "glob";
 import { lookup as mime } from "mime-types";
 import { extname, resolve } from "path";
+import { git, listGitTags } from "./util";
 
 export interface IDeployerOptions {
   localDir: string; // e.g. '/path/to/dist'
@@ -31,6 +32,8 @@ export interface IDeployerOptions {
   assetsPrefix?: string; // e.g. "https://example.com/v2/__assets/"
 
   otherOptions?: object; // pass in any other params that aws-sdk supports
+
+  writeVersionsJson?: boolean;
 }
 
 interface IRevManifest {
@@ -38,6 +41,7 @@ interface IRevManifest {
 }
 
 const REV_MANIFEST_FILENAME = "rev-manifest.json";
+const VERSIONS_JSON_FILENAME = "VERSIONS.json";
 
 export default class Deployer extends EventEmitter {
   public options: IDeployerOptions;
@@ -60,7 +64,8 @@ export default class Deployer extends EventEmitter {
       preview,
       assetsPrefix,
       maxAge,
-      otherOptions
+      otherOptions,
+      writeVersionsJson,
     } = this.options;
 
     if (path && (path.startsWith("/") || path.endsWith("/"))) {
@@ -68,7 +73,9 @@ export default class Deployer extends EventEmitter {
         "Please provide `path` without leading or trailing slashes."
       );
     } else if (path) {
-      console.warn("Using the `path` option. PLEASE BE VERY CAREFUL WITH THIS.");
+      console.warn(
+        "Using the `path` option. PLEASE BE VERY CAREFUL WITH THIS."
+      );
     }
 
     // load in the rev-manifest
@@ -95,11 +102,11 @@ export default class Deployer extends EventEmitter {
       }
 
       if (path) {
-        Object.keys(revManifest).forEach(key => {
+        Object.keys(revManifest).forEach((key) => {
           modifiedRevManifest[key] = `${path}/${revManifest[key]}`;
         });
       } else {
-        Object.keys(revManifest).forEach(key => {
+        Object.keys(revManifest).forEach((key) => {
           modifiedRevManifest[key] = `${assetsPrefix}${revManifest[key]}`;
         });
       }
@@ -111,18 +118,18 @@ export default class Deployer extends EventEmitter {
     const client = new S3({
       accessKeyId: awsKey,
       region: awsRegion,
-      secretAccessKey: awsSecret
+      secretAccessKey: awsSecret,
     });
 
     const allFiles: string[][] = glob(`${localDir}/**/*`, { nodir: true })
-      .filter(filePath => !filePath.includes(REV_MANIFEST_FILENAME))
-      .map(filePath => [filePath, filePath.replace(`${localDir}/`, "")]);
+      .filter((filePath) => !filePath.includes(REV_MANIFEST_FILENAME))
+      .map((filePath) => [filePath, filePath.replace(`${localDir}/`, "")]);
 
     if (revvedFiles) {
       const uploadedAssets = Promise.all(
         allFiles
           .filter(([filePath, filename]) =>
-            revvedFiles.find(revved => revved.includes(filename as string))
+            revvedFiles.find((revved) => revved.includes(filename as string))
           )
           .map(([filePath, filename]) =>
             client
@@ -134,7 +141,7 @@ export default class Deployer extends EventEmitter {
                 Key: path
                   ? `${path}/${filename}`
                   : `v2/__assets/${projectName}/${filename}`,
-                ...otherOptions
+                ...otherOptions,
               })
               .promise()
           )
@@ -152,13 +159,15 @@ export default class Deployer extends EventEmitter {
               filename && !filename.includes(REV_MANIFEST_FILENAME)
           )
           .map(([filePath, filename]) => {
-            const mimeType = extname(filename as string) === ""
-            ? "text/html"
-            : mime(extname(filename as string)) || undefined;
+            const mimeType =
+              extname(filename as string) === ""
+                ? "text/html"
+                : mime(extname(filename as string)) || undefined;
 
-            const ContentType = mimeType && mimeType.includes('text') 
-              ? `${mimeType}; charset=utf-8` 
-              : mimeType;
+            const ContentType =
+              mimeType && mimeType.includes("text")
+                ? `${mimeType}; charset=utf-8`
+                : mimeType;
 
             return client
               .putObject({
@@ -174,13 +183,13 @@ export default class Deployer extends EventEmitter {
                   : `v2${
                       preview ? "-preview" : ""
                     }/${projectName}/${target}/${filename}`,
-                ...otherOptions
+                ...otherOptions,
               })
-              .promise()
+              .promise();
           })
       ).then(() => {
         this.emit("uploaded", {
-          info: `${target} (bundle)`
+          info: `${target} (bundle)`,
         });
       });
 
@@ -197,7 +206,7 @@ export default class Deployer extends EventEmitter {
               : `v2${
                   preview ? "-preview" : ""
                 }/${projectName}/${target}/${REV_MANIFEST_FILENAME}`,
-            ...otherOptions
+            ...otherOptions,
           })
           .promise()
           .then(() =>
@@ -207,6 +216,30 @@ export default class Deployer extends EventEmitter {
       return [...acc, await uploadedTarget];
     }, Promise.resolve([]));
 
+    if (writeVersionsJson) {
+      const tags = await listGitTags();
+
+      await client
+        .putObject({
+          ACL: "public-read",
+          Body: JSON.stringify(tags || []),
+          Bucket: bucketName,
+          CacheControl: `max-age=${typeof maxAge === "number" ? maxAge : 60}`,
+          ContentType: "application/json",
+          Key: path
+            ? `${path}/${VERSIONS_JSON_FILENAME}`
+            : `v2${
+                preview ? "-preview" : ""
+              }/${projectName}/${VERSIONS_JSON_FILENAME}`,
+          ...otherOptions,
+        })
+        .promise()
+        .then(() =>
+          this.emit("uploaded", {
+            info: `${projectName} (modified versions: ${VERSIONS_JSON_FILENAME})`,
+          })
+        );
+    }
     return this.getURLs();
   }
 
@@ -214,21 +247,17 @@ export default class Deployer extends EventEmitter {
    * Returns the base URLs that this deployer would deploy to.
    */
   public getURLs() {
-    const {
-      bucketName,
-      projectName,
-      awsRegion,
-      targets,
-      path,
-      preview
-    } = this.options;
+    const { bucketName, projectName, awsRegion, targets, path, preview } =
+      this.options;
 
     if (path) {
-      return [`http://${bucketName}.s3-website-${awsRegion}.amazonaws.com/${path}/`]
+      return [
+        `http://${bucketName}.s3-website-${awsRegion}.amazonaws.com/${path}/`,
+      ];
     }
 
     return targets.map(
-      target =>
+      (target) =>
         `http://${bucketName}.s3-website-${awsRegion}.amazonaws.com/v2${
           preview ? "-preview" : ""
         }/${projectName}/${target}/`

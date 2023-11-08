@@ -21,18 +21,21 @@ describe("util functions", () => {
     it("exports git()", () => {
       should.exist(util.git);
     });
+    it("exporst listGitTags()", () => {
+      should.exist(util.listGitTags);
+    });
   });
 
   describe("#verifyGitVersion()", () => {
     const gitRawStub = sinon.stub();
     const { verifyGitVersion } = proxyquire("../src/util", {
-      execa: (...args: any[]) => gitRawStub(...args)
+      execa: (...args: any[]) => gitRawStub(...args),
     });
 
     beforeEach(() => {
       gitRawStub.withArgs("git", ["--version"]).resolves({
         stderr: null,
-        stdout: "git version 99.88.77"
+        stdout: "git version 99.88.77",
       });
     });
 
@@ -60,7 +63,7 @@ describe("util functions", () => {
           awsKey: "test",
           awsRegion: "test",
           awsSecret: "test",
-          bucketName: "test"
+          bucketName: "test",
         })).should.not.throw();
 
       (() =>
@@ -68,7 +71,7 @@ describe("util functions", () => {
           awsKey: undefined,
           awsRegion: "test",
           awsSecret: "test",
-          bucketName: "test"
+          bucketName: "test",
         })).should.throw();
 
       (() =>
@@ -76,7 +79,7 @@ describe("util functions", () => {
           awsKey: "test",
           awsRegion: undefined,
           awsSecret: "test",
-          bucketName: "test"
+          bucketName: "test",
         })).should.throw();
 
       (() =>
@@ -84,7 +87,7 @@ describe("util functions", () => {
           awsKey: "test",
           awsRegion: "test",
           awsSecret: undefined,
-          bucketName: "test"
+          bucketName: "test",
         })).should.throw();
 
       (() =>
@@ -92,7 +95,7 @@ describe("util functions", () => {
           awsKey: "test",
           awsRegion: "test",
           awsSecret: "test",
-          bucketName: undefined
+          bucketName: undefined,
         })).should.throw();
     });
   });
@@ -100,7 +103,7 @@ describe("util functions", () => {
   describe("#git()", () => {
     const execaStub = sinon.stub();
     const { git } = proxyquire("../src/util", {
-      execa: (...args: any[]) => execaStub(...args)
+      execa: (...args: any[]) => execaStub(...args),
     });
 
     beforeEach(() => {
@@ -108,17 +111,44 @@ describe("util functions", () => {
         stderr: null,
         stdout: true,
       });
-    })
+    });
 
     afterEach(() => {
       execaStub.reset();
     });
 
-    it('passes the arguments to git', async () => {
-      const output = await git(['herpa', 'derpa']);
+    it("passes the arguments to git", async () => {
+      const output = await git(["herpa", "derpa"]);
 
       output.should.be.true;
-      execaStub.should.have.been.calledWith('git', ['herpa', 'derpa']);
+      execaStub.should.have.been.calledWith("git", ["herpa", "derpa"]);
+    });
+  });
+
+  describe("#listGitTags()", () => {
+    const gitRawStub = sinon.stub();
+    const { listGitTags } = proxyquire("../src/util", {
+      execa: (...args: any[]) => gitRawStub(...args),
+    });
+
+    beforeEach(() => {
+      gitRawStub.withArgs("git", ["tag"]).resolves({
+        stderr: null,
+        stdout: "v1.0.0\nv2.0.0\nv3.0.0",
+      });
+    });
+
+    afterEach(() => {
+      gitRawStub.reset();
+    });
+
+    it("lists Git tags", async () => {
+      try {
+        const result = await listGitTags();
+        result.should.eql(["v1.0.0", "v2.0.0", "v3.0.0"]);
+      } catch (e) {
+        should.not.exist(e);
+      }
     });
   });
 });

@@ -21,8 +21,11 @@ describe("Deployer class", () => {
       // prettier-ignore
       S3: function() { // tslint:disable-line
         return { putObject: putObjectStub };
-      }
-    }
+      },
+    },
+    "./util": {
+      listGitTags: async () => ["v1.0.0", "v2.0.0", "v3.0.0"],
+    },
   });
   beforeEach(() => {
     putObjectStub.returns({ promise: () => Promise.resolve(true) });
@@ -33,11 +36,11 @@ describe("Deployer class", () => {
       localDir: resolve(__dirname, "..", "fixture", "dist"),
       otherOptions: {
         Metadata: {
-          "x-amz-meta-surrogate-key": "my-key"
-        }
+          "x-amz-meta-surrogate-key": "my-key",
+        },
       },
       projectName: "test-project",
-      targets: ["test"]
+      targets: ["test"],
     });
   });
 
@@ -68,7 +71,7 @@ describe("Deployer class", () => {
         Bucket: "test-bucket",
         CacheControl: "max-age=365000000, immutable",
         Key: `v2/__assets/test-project/foo.abc123.js`,
-        Metadata: { "x-amz-meta-surrogate-key": "my-key" }
+        Metadata: { "x-amz-meta-surrogate-key": "my-key" },
       });
       putObjectStub.should.have.been.calledWith({
         ACL: "public-read",
@@ -79,7 +82,7 @@ describe("Deployer class", () => {
         CacheControl: "max-age=60",
         ContentType: "application/javascript",
         Key: `v2/test-project/test/foo.abc123.js`,
-        Metadata: { "x-amz-meta-surrogate-key": "my-key" }
+        Metadata: { "x-amz-meta-surrogate-key": "my-key" },
       });
       putObjectStub.should.have.been.calledWith({
         ACL: "public-read",
@@ -90,7 +93,7 @@ describe("Deployer class", () => {
         CacheControl: "max-age=60",
         ContentType: "text/html; charset=utf-8",
         Key: `v2/test-project/test/index.html`,
-        Metadata: { "x-amz-meta-surrogate-key": "my-key" }
+        Metadata: { "x-amz-meta-surrogate-key": "my-key" },
       });
       putObjectStub.should.have.been.calledWith({
         ACL: "public-read",
@@ -99,7 +102,7 @@ describe("Deployer class", () => {
         CacheControl: "max-age=60",
         ContentType: "application/json",
         Key: "v2/test-project/test/rev-manifest.json",
-        Metadata: { "x-amz-meta-surrogate-key": "my-key" }
+        Metadata: { "x-amz-meta-surrogate-key": "my-key" },
       });
 
       putObjectStub.should.have.been.calledWith({
@@ -118,7 +121,7 @@ describe("Deployer class", () => {
         CacheControl: "max-age=60",
         ContentType: undefined,
         Key: `v2/test-project/test/test.directory/test.file`,
-        Metadata: { "x-amz-meta-surrogate-key": "my-key" }
+        Metadata: { "x-amz-meta-surrogate-key": "my-key" },
       });
     });
 
@@ -128,7 +131,7 @@ describe("Deployer class", () => {
         awsRegion: "eu-west-1",
         bucketName: "test-bucket",
         localDir: resolve(__dirname, "..", "fixture", "dist"),
-        path: "__arbitrary-path-test"
+        path: "__arbitrary-path-test",
       });
 
       const res = await newInst.execute();
@@ -145,7 +148,7 @@ describe("Deployer class", () => {
         ),
         Bucket: "test-bucket",
         CacheControl: "max-age=365000000, immutable",
-        Key: `__arbitrary-path-test/foo.abc123.js`
+        Key: `__arbitrary-path-test/foo.abc123.js`,
       });
       putObjectStub.should.have.been.calledWith({
         ACL: "public-read",
@@ -155,7 +158,7 @@ describe("Deployer class", () => {
         Bucket: "test-bucket",
         CacheControl: "max-age=60",
         ContentType: "application/javascript",
-        Key: `__arbitrary-path-test/foo.abc123.js`
+        Key: `__arbitrary-path-test/foo.abc123.js`,
       });
       putObjectStub.should.have.been.calledWith({
         ACL: "public-read",
@@ -165,7 +168,7 @@ describe("Deployer class", () => {
         Bucket: "test-bucket",
         CacheControl: "max-age=60",
         ContentType: "text/html; charset=utf-8",
-        Key: `__arbitrary-path-test/index.html`
+        Key: `__arbitrary-path-test/index.html`,
       });
       putObjectStub.should.have.been.calledWith({
         ACL: "public-read",
@@ -173,16 +176,16 @@ describe("Deployer class", () => {
         Bucket: "test-bucket",
         CacheControl: "max-age=60",
         ContentType: "application/json",
-        Key: "__arbitrary-path-test/rev-manifest.json"
+        Key: "__arbitrary-path-test/rev-manifest.json",
       });
     });
 
     it("rejects if `path` opt has trailing or leading slashes", async () => {
       const trailing = new Deployer({
-        path: "__arbitrary-path-test/"
+        path: "__arbitrary-path-test/",
       });
       const leading = new Deployer({
-        path: "__arbitrary-path-test/"
+        path: "__arbitrary-path-test/",
       });
 
       try {
@@ -202,6 +205,28 @@ describe("Deployer class", () => {
           "Please provide `path` without leading or trailing slashes."
         );
       }
+    });
+
+    it("writes VERSIONS.json", async () => {
+      const newInst = new Deployer({
+        assetsPrefix: "https://ig.ft.com/v2/__assets/",
+        awsRegion: "eu-west-1",
+        bucketName: "test-bucket",
+        localDir: resolve(__dirname, "..", "fixture", "dist"),
+        projectName: "test-project",
+        targets: ["test"],
+        writeVersionsJson: true,
+      });
+
+      await newInst.execute();
+      putObjectStub.should.have.been.calledWith({
+        ACL: "public-read",
+        Body: '["v1.0.0","v2.0.0","v3.0.0"]',
+        Bucket: "test-bucket",
+        CacheControl: "max-age=60",
+        ContentType: "application/json",
+        Key: "v2/test-project/VERSIONS.json",
+      });
     });
   });
 
