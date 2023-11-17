@@ -220,7 +220,6 @@ describe("Deployer class", () => {
 
       await newInst.execute();
       putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
         Body: '["v1.0.0","v2.0.0","v3.0.0"]',
         Bucket: "test-bucket",
         CacheControl: "max-age=60",
