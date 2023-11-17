@@ -134,7 +134,7 @@ export default class Deployer extends EventEmitter {
           .map(([filePath, filename]) =>
             client
               .putObject({
-                ACL: "public-read",
+                ACL: bucketName.includes("ft-djd-ccc") ? undefined : "public-read",
                 Body: readFileSync(filePath as string),
                 Bucket: bucketName,
                 CacheControl: "max-age=365000000, immutable",
@@ -171,7 +171,7 @@ export default class Deployer extends EventEmitter {
 
             return client
               .putObject({
-                ACL: "public-read",
+                ACL: bucketName.includes("ft-djd-ccc") ? undefined : "public-read",
                 Body: readFileSync(filePath as string),
                 Bucket: bucketName,
                 CacheControl: `max-age=${
@@ -196,7 +196,7 @@ export default class Deployer extends EventEmitter {
       if (revManifest) {
         await client
           .putObject({
-            ACL: "public-read",
+            ACL: bucketName.includes("ft-djd-ccc") ? undefined : "public-read",
             Body: JSON.stringify(revManifest),
             Bucket: bucketName,
             CacheControl: `max-age=${typeof maxAge === "number" ? maxAge : 60}`,
