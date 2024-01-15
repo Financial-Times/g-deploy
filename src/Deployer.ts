@@ -116,9 +116,7 @@ export default class Deployer extends EventEmitter {
 
     // make an S3 client instance
     const client = new S3({
-      accessKeyId: awsKey,
       region: awsRegion,
-      secretAccessKey: awsSecret,
     });
 
     const allFiles: string[][] = glob(`${localDir}/**/*`, { nodir: true })

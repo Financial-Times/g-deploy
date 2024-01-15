@@ -14,9 +14,7 @@ import vault from "./vault";
 
 interface ICLIFlags {
   assetsPrefix?: string;
-  awsKey?: string;
   awsRegion?: string;
-  awsSecret?: string;
   branchName?: string;
   bucketName?: string;
   confirm?: boolean;
@@ -42,9 +40,7 @@ export default async () => {
 
   // define our defaults - some of which come from environment variables
   const defaults = {
-    awsKey: process.env.AWS_KEY_PROD,
     awsRegion: process.env.AWS_REGION_PROD || "eu-west-1",
-    awsSecret: process.env.AWS_SECRET_PROD,
     bucketName: process.env.BUCKET_NAME_PROD,
     localDir: "dist",
     path: undefined,
@@ -93,31 +89,6 @@ export default async () => {
     }
   }
 
-  if (
-    !process.env.DOPPLER_TOKEN && // Don't overwrite Doppler values
-    options.vaultRole &&
-    options.vaultSecret &&
-    options.vaultEndpoint &&
-    options.vaultSecretPath
-  ) {
-    try {
-      const result = await vault(
-        options.vaultRole,
-        options.vaultSecret,
-        options.vaultEndpoint,
-        options.vaultSecretPath
-      );
-      const { AWS_KEY_PROD, AWS_SECRET_PROD } = result.data;
-
-      if (AWS_KEY_PROD && AWS_SECRET_PROD) {
-        options.awsKey = AWS_KEY_PROD;
-        options.awsSecret = AWS_SECRET_PROD;
-      }
-    } catch (e: any) {
-      console.error(`Vault error: ${e.message}`);
-    }
-  }
-
   // validate options
   if (!options.bucketName) {
     throw new Error("bucketName not set");
@@ -137,9 +108,6 @@ export default async () => {
     (i) => i
   );
 
-  // Ensure the required options exist; throw otherwise
-  verifyOptions(options);
-
   // construct our deployer
   const deployer = new Deployer(options as IDeployerOptions);
 
@@ -158,7 +126,8 @@ export default async () => {
       `  tag: ${options.tag}\n` +
       `  sha: ${options.sha as string}\n` +
       `  assets prefix: ${options.assetsPrefix}\n` +
-      `  preview: ${options.preview}\n`
+      `  preview: ${options.preview}\n` + 
+      `  bucket: ${options.bucketName}\n`
   );
 
   if (options.path) {
