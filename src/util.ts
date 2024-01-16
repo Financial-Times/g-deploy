@@ -70,9 +70,11 @@ interface IVerifyOptions {
   [key: string]: any;
 }
 
-export const listGitTags = async () =>
-  (await git(["tag"]))
+export const listGitTags = async (at?: string) => {
+  const output = await git(at ? ["tag", "--points-at", at] : ["tag"]);
+  return output
     .split("\n")
     .map((v) => v.trim())
     .filter((v) => /^v\d/.test(v))
     .sort();
+};

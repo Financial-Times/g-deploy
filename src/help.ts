@@ -24,15 +24,15 @@ export default `
   ${cyan("Upload settings")}
   ${grey("If not provided, these are deduced from the git status in the CWD.")}
     --project-name
-    --sha - unique reference for this commit
     --branch-name - name of the branch you are deploying
+    --tag - tagged version to also deploy to
     --local-dir - what to upload; defaults to ./dist
     --preview - upload files to preview folder
 
   ${cyan("Other")}
     --help - show this help and exit
     --get-branch-url - instead of deploying, just print the URL it would deploy to
-    --get-commit-url - as above, but get the commit-specific URL
+    --get-tag-url - as above, but get the tag-specific URL
     --confirm - skip the confirmation dialogue when deploying
     --write-versions-json - write a VERSIONS.json file at the project base containing every version number
 `;
