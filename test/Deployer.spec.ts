@@ -30,9 +30,9 @@ describe("Deployer class", () => {
   beforeEach(() => {
     putObjectStub.returns({ promise: () => Promise.resolve(true) });
     inst = new Deployer({
-      assetsPrefix: "https://ig.ft.com/v2/__assets/",
       awsRegion: "eu-west-1",
       bucketName: "test-bucket",
+      cacheAssets: true,
       localDir: resolve(__dirname, "..", "fixture", "dist"),
       otherOptions: {
         Metadata: {
@@ -62,30 +62,20 @@ describe("Deployer class", () => {
       res[0].should.equal(
         "http://test-bucket.s3-website-eu-west-1.amazonaws.com/v2/test-project/test/"
       );
-      putObjectStub.callCount.should.equal(5);
+      putObjectStub.callCount.should.equal(3);
       putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
+        ACL: undefined,
         Body: readFileSync(
-          resolve(__dirname, "..", "fixture", "dist", "foo.abc123.js")
+          resolve(__dirname, "..", "fixture", "dist", "assets", "foo.abc123.js")
         ),
         Bucket: "test-bucket",
         CacheControl: "max-age=365000000, immutable",
-        Key: `v2/__assets/test-project/foo.abc123.js`,
-        Metadata: { "x-amz-meta-surrogate-key": "my-key" },
-      });
-      putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
-        Body: readFileSync(
-          resolve(__dirname, "..", "fixture", "dist", "foo.abc123.js")
-        ),
-        Bucket: "test-bucket",
-        CacheControl: "max-age=60",
         ContentType: "application/javascript",
-        Key: `v2/test-project/test/foo.abc123.js`,
+        Key: `v2/test-project/test/assets/foo.abc123.js`,
         Metadata: { "x-amz-meta-surrogate-key": "my-key" },
       });
       putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
+        ACL: undefined,
         Body: readFileSync(
           resolve(__dirname, "..", "fixture", "dist", "index.html")
         ),
@@ -95,18 +85,9 @@ describe("Deployer class", () => {
         Key: `v2/test-project/test/index.html`,
         Metadata: { "x-amz-meta-surrogate-key": "my-key" },
       });
-      putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
-        Body: '{"foo.js":"foo.abc123.js"}',
-        Bucket: "test-bucket",
-        CacheControl: "max-age=60",
-        ContentType: "application/json",
-        Key: "v2/test-project/test/rev-manifest.json",
-        Metadata: { "x-amz-meta-surrogate-key": "my-key" },
-      });
 
       putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
+        ACL: undefined,
         Body: readFileSync(
           resolve(
             __dirname,
@@ -127,11 +108,12 @@ describe("Deployer class", () => {
 
     it("allows arbitrary paths", async () => {
       const newInst = new Deployer({
-        assetsPrefix: "https://ig.ft.com/v2/__assets/",
         awsRegion: "eu-west-1",
         bucketName: "test-bucket",
         localDir: resolve(__dirname, "..", "fixture", "dist"),
         path: "__arbitrary-path-test",
+        cacheAssets: true,
+        maxAge: 3600,
       });
 
       const res = await newInst.execute();
@@ -140,43 +122,26 @@ describe("Deployer class", () => {
       res[0].should.equal(
         "http://test-bucket.s3-website-eu-west-1.amazonaws.com/__arbitrary-path-test/"
       );
-      putObjectStub.callCount.should.equal(5);
+      putObjectStub.callCount.should.equal(3);
       putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
+        ACL: undefined,
         Body: readFileSync(
-          resolve(__dirname, "..", "fixture", "dist", "foo.abc123.js")
+          resolve(__dirname, "..", "fixture", "dist", "assets", "foo.abc123.js")
         ),
         Bucket: "test-bucket",
         CacheControl: "max-age=365000000, immutable",
-        Key: `__arbitrary-path-test/foo.abc123.js`,
-      });
-      putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
-        Body: readFileSync(
-          resolve(__dirname, "..", "fixture", "dist", "foo.abc123.js")
-        ),
-        Bucket: "test-bucket",
-        CacheControl: "max-age=60",
         ContentType: "application/javascript",
-        Key: `__arbitrary-path-test/foo.abc123.js`,
+        Key: `__arbitrary-path-test/assets/foo.abc123.js`,
       });
       putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
+        ACL: undefined,
         Body: readFileSync(
           resolve(__dirname, "..", "fixture", "dist", "index.html")
         ),
         Bucket: "test-bucket",
-        CacheControl: "max-age=60",
+        CacheControl: "max-age=3600",
         ContentType: "text/html; charset=utf-8",
         Key: `__arbitrary-path-test/index.html`,
-      });
-      putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
-        Body: '{"foo.js":"foo.abc123.js"}',
-        Bucket: "test-bucket",
-        CacheControl: "max-age=60",
-        ContentType: "application/json",
-        Key: "__arbitrary-path-test/rev-manifest.json",
       });
     });
 
@@ -207,24 +172,36 @@ describe("Deployer class", () => {
       }
     });
 
-    it("writes VERSIONS.json", async () => {
+    it("writes VERSIONS.json, allows preview", async () => {
       const newInst = new Deployer({
-        assetsPrefix: "https://ig.ft.com/v2/__assets/",
         awsRegion: "eu-west-1",
-        bucketName: "test-bucket",
+        bucketName: "ft-ig-content-prod",
         localDir: resolve(__dirname, "..", "fixture", "dist"),
         projectName: "test-project",
         targets: ["test"],
         writeVersionsJson: true,
+        cacheAssets: false,
+        preview: true,
       });
 
       await newInst.execute();
       putObjectStub.should.have.been.calledWith({
+        ACL: "public-read",
+        Body: readFileSync(
+          resolve(__dirname, "..", "fixture", "dist", "assets", "foo.abc123.js")
+        ),
+        Bucket: "ft-ig-content-prod",
+        CacheControl: "max-age=60",
+        ContentType: "application/javascript",
+        Key: `preview/test-project/test/assets/foo.abc123.js`,
+      });
+      putObjectStub.should.have.been.calledWith({
+        ACL: "public-read",
         Body: '["v1.0.0","v2.0.0","v3.0.0"]',
-        Bucket: "test-bucket",
+        Bucket: "ft-ig-content-prod",
         CacheControl: "max-age=60",
         ContentType: "application/json",
-        Key: "v2/test-project/VERSIONS.json",
+        Key: "preview/test-project/VERSIONS.json",
       });
     });
   });

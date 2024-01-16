@@ -13,7 +13,7 @@ import { git, verifyGitVersion, verifyOptions } from "./util";
 import vault from "./vault";
 
 interface ICLIFlags {
-  assetsPrefix?: string;
+  cacheAssets?: string;
   awsRegion?: string;
   branchName?: string;
   bucketName?: string;
@@ -42,6 +42,7 @@ export default async () => {
   const defaults = {
     awsRegion: process.env.AWS_REGION_PROD || "eu-west-1",
     bucketName: process.env.BUCKET_NAME_PROD,
+    cacheAssets: true,
     localDir: "dist",
     path: undefined,
     preview: false,
@@ -125,8 +126,8 @@ export default async () => {
       `  branch name: ${options.branchName as string}\n` +
       `  tag: ${options.tag}\n` +
       `  sha: ${options.sha as string}\n` +
-      `  assets prefix: ${options.assetsPrefix}\n` +
-      `  preview: ${options.preview}\n` + 
+      `  cache assets: ${options.cacheAssets}\n` +
+      `  preview: ${options.preview}\n` +
       `  bucket: ${options.bucketName}\n`
   );
 
