@@ -100,7 +100,7 @@ export default async () => {
   options.targets = [options.branchName];
   if (options.tag) {
     options.targets.push(options.tag);
-  } else if (!options.preview) {
+  } else if (!options.preview && !options.path) {
     // Infer any current tag from git and publish there (only in prod)
     const tags = await listGitTags("HEAD");
     options.targets.push(...tags);
