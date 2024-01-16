@@ -132,9 +132,10 @@ export default class Deployer extends EventEmitter {
           .map(([filePath, filename]) =>
             client
               .putObject({
-                ACL: bucketName.includes("ft-djd-ccc")
-                  ? undefined
-                  : "public-read",
+                ACL:
+                  bucketName === "ft-ig-content-prod"
+                    ? "public-read"
+                    : undefined,
                 Body: readFileSync(filePath as string),
                 Bucket: bucketName,
                 CacheControl: "max-age=365000000, immutable",
@@ -171,9 +172,10 @@ export default class Deployer extends EventEmitter {
 
             return client
               .putObject({
-                ACL: bucketName.includes("ft-djd-ccc")
-                  ? undefined
-                  : "public-read",
+                ACL:
+                  bucketName === "ft-ig-content-prod"
+                    ? "public-read"
+                    : undefined,
                 Body: readFileSync(filePath as string),
                 Bucket: bucketName,
                 CacheControl: `max-age=${
@@ -182,8 +184,8 @@ export default class Deployer extends EventEmitter {
                 ContentType,
                 Key: path
                   ? `${path}/${filename}`
-                  : `v2${
-                      preview ? "-preview" : ""
+                  : `${
+                      preview ? "preview" : "v2"
                     }/${projectName}/${target}/${filename}`,
                 ...otherOptions,
               })
@@ -198,15 +200,16 @@ export default class Deployer extends EventEmitter {
       if (revManifest) {
         await client
           .putObject({
-            ACL: bucketName.includes("ft-djd-ccc") ? undefined : "public-read",
+            ACL:
+              bucketName === "ft-ig-content-prod" ? "public-read" : undefined,
             Body: JSON.stringify(revManifest),
             Bucket: bucketName,
             CacheControl: `max-age=${typeof maxAge === "number" ? maxAge : 60}`,
             ContentType: "application/json",
             Key: path
               ? `${path}/${REV_MANIFEST_FILENAME}`
-              : `v2${
-                  preview ? "-preview" : ""
+              : `${
+                  preview ? "preview" : "v2"
                 }/${projectName}/${target}/${REV_MANIFEST_FILENAME}`,
             ...otherOptions,
           })
@@ -229,8 +232,8 @@ export default class Deployer extends EventEmitter {
           ContentType: "application/json",
           Key: path
             ? `${path}/${VERSIONS_JSON_FILENAME}`
-            : `v2${
-                preview ? "-preview" : ""
+            : `${
+                preview ? "preview" : "v2"
               }/${projectName}/${VERSIONS_JSON_FILENAME}`,
           ...otherOptions,
         })
@@ -259,8 +262,8 @@ export default class Deployer extends EventEmitter {
 
     return targets.map(
       (target) =>
-        `http://${bucketName}.s3-website-${awsRegion}.amazonaws.com/v2${
-          preview ? "-preview" : ""
+        `http://${bucketName}.s3-website-${awsRegion}.amazonaws.com/${
+          preview ? "preview" : "v2"
         }/${projectName}/${target}/`
     );
   }
