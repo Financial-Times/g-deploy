@@ -27,20 +27,13 @@ export interface IDeployerOptions {
 
   preview?: boolean;
 
-  maxAge?: number; // for everything except revved assets
-
-  assetsPrefix?: string; // e.g. "https://example.com/v2/__assets/"
+  maxAge?: number; // for everything except checksum-ed files (in assets/ dir)
 
   otherOptions?: object; // pass in any other params that aws-sdk supports
 
   writeVersionsJson?: boolean;
 }
 
-interface IRevManifest {
-  [key: string]: string;
-}
-
-const REV_MANIFEST_FILENAME = "rev-manifest.json";
 const VERSIONS_JSON_FILENAME = "VERSIONS.json";
 
 export default class Deployer extends EventEmitter {
@@ -62,7 +55,6 @@ export default class Deployer extends EventEmitter {
       targets,
       path,
       preview,
-      assetsPrefix,
       maxAge,
       otherOptions,
       writeVersionsJson,
@@ -78,146 +70,56 @@ export default class Deployer extends EventEmitter {
       );
     }
 
-    // load in the rev-manifest
-    const revManifest: IRevManifest | null = (() => {
-      try {
-        return JSON.parse(
-          readFileSync(resolve(localDir, REV_MANIFEST_FILENAME), "utf-8")
-        );
-      } catch (error: any) {
-        if (error.code === "ENOENT") {
-          return undefined;
-        }
-        throw error;
-      }
-    })();
-
-    // save an altered version of the rev manifest, if any
-    const modifiedRevManifest: IRevManifest = {};
-    if (revManifest) {
-      if (typeof assetsPrefix !== "string") {
-        throw new Error(
-          "Expected assetsPrefix to be defined if revManifest is being used"
-        );
-      }
-
-      if (path) {
-        Object.keys(revManifest).forEach((key) => {
-          modifiedRevManifest[key] = `${path}/${revManifest[key]}`;
-        });
-      } else {
-        Object.keys(revManifest).forEach((key) => {
-          modifiedRevManifest[key] = `${assetsPrefix}${revManifest[key]}`;
-        });
-      }
-    }
-
-    const revvedFiles = revManifest && Object.values(modifiedRevManifest);
-
     // make an S3 client instance
     const client = new S3({
       region: awsRegion,
     });
 
-    const allFiles: string[][] = glob(`${localDir}/**/*`, { nodir: true })
-      .filter((filePath) => !filePath.includes(REV_MANIFEST_FILENAME))
-      .map((filePath) => [filePath, filePath.replace(`${localDir}/`, "")]);
-
-    if (revvedFiles) {
-      const uploadedAssets = Promise.all(
-        allFiles
-          .filter(([filePath, filename]) =>
-            revvedFiles.find((revved) => revved.includes(filename as string))
-          )
-          .map(([filePath, filename]) =>
-            client
-              .putObject({
-                ACL:
-                  bucketName === "ft-ig-content-prod"
-                    ? "public-read"
-                    : undefined,
-                Body: readFileSync(filePath as string),
-                Bucket: bucketName,
-                CacheControl: "max-age=365000000, immutable",
-                Key: path
-                  ? `${path}/${filename}`
-                  : `v2/__assets/${projectName}/${filename}`,
-                ...otherOptions,
-              })
-              .promise()
-          )
-      ).then(() => this.emit("uploaded", { info: "assets" }));
-    }
+    const allFiles: string[][] = glob(`${localDir}/**/*`, { nodir: true }).map(
+      (filePath) => [filePath, filePath.replace(`${localDir}/`, "")]
+    );
 
     const prefixes = path ? [path] : targets;
 
     await prefixes.reduce(async (queue: Promise<any[]>, target: string) => {
       const acc = await queue;
       const uploadedTarget = Promise.all(
-        allFiles
-          .filter(
-            ([, filename]) =>
-              filename && !filename.includes(REV_MANIFEST_FILENAME)
-          )
-          .map(([filePath, filename]) => {
-            const mimeType =
-              extname(filename as string) === ""
-                ? "text/html"
-                : mime(extname(filename as string)) || undefined;
+        allFiles.map(([filePath, filename]) => {
+          const mimeType =
+            extname(filename as string) === ""
+              ? "text/html"
+              : mime(extname(filename as string)) || undefined;
 
-            const ContentType =
-              mimeType && mimeType.includes("text")
-                ? `${mimeType}; charset=utf-8`
-                : mimeType;
+          const ContentType =
+            mimeType && mimeType.includes("text")
+              ? `${mimeType}; charset=utf-8`
+              : mimeType;
 
-            return client
-              .putObject({
-                ACL:
-                  bucketName === "ft-ig-content-prod"
-                    ? "public-read"
-                    : undefined,
-                Body: readFileSync(filePath as string),
-                Bucket: bucketName,
-                CacheControl: `max-age=${
-                  typeof maxAge === "number" ? maxAge : 60
-                }`,
-                ContentType,
-                Key: path
-                  ? `${path}/${filename}`
-                  : `${
-                      preview ? "preview" : "v2"
-                    }/${projectName}/${target}/${filename}`,
-                ...otherOptions,
-              })
-              .promise();
-          })
+          return client
+            .putObject({
+              ACL:
+                bucketName === "ft-ig-content-prod" ? "public-read" : undefined,
+              Body: readFileSync(filePath as string),
+              Bucket: bucketName,
+              CacheControl: filename.match(/^assets\//)
+                ? "max-age=365000000, immutable"
+                : `max-age=${typeof maxAge === "number" ? maxAge : 60}`,
+              ContentType,
+              Key: path
+                ? `${path}/${filename}`
+                : `${
+                    preview ? "preview" : "v2"
+                  }/${projectName}/${target}/${filename}`,
+              ...otherOptions,
+            })
+            .promise();
+        })
       ).then(() => {
         this.emit("uploaded", {
           info: `${target} (bundle)`,
         });
       });
 
-      if (revManifest) {
-        await client
-          .putObject({
-            ACL:
-              bucketName === "ft-ig-content-prod" ? "public-read" : undefined,
-            Body: JSON.stringify(revManifest),
-            Bucket: bucketName,
-            CacheControl: `max-age=${typeof maxAge === "number" ? maxAge : 60}`,
-            ContentType: "application/json",
-            Key: path
-              ? `${path}/${REV_MANIFEST_FILENAME}`
-              : `${
-                  preview ? "preview" : "v2"
-                }/${projectName}/${target}/${REV_MANIFEST_FILENAME}`,
-            ...otherOptions,
-          })
-          .promise()
-          .then(() =>
-            this.emit("uploaded", { info: `${target} (modified rev-manifest)` })
-          );
-      }
       return [...acc, await uploadedTarget];
     }, Promise.resolve([]));
 
