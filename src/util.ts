@@ -10,8 +10,6 @@ export const git = async (args: string[]) => {
   const { stdout, stderr } = await execa("git", args);
   if (stderr) {
     throw new Error(stderr);
-  } else if (!stdout) {
-    throw new Error("No git output");
   }
 
   return stdout;
