@@ -14,16 +14,18 @@ export default async function getAwsKeys(
   try {
     const { data } = await axios.post(`${endpoint}/v1/auth/approle/login`, {
       role_id: roleId,
-      secret_id: secretId
+      secret_id: secretId,
     });
 
     const token = data.auth.client_token;
 
-    return (await axios.get(`${endpoint}/v1/${secretPath}`, {
-      headers: {
-        "X-Vault-Token": token
-      }
-    })).data;
+    return (
+      await axios.get(`${endpoint}/v1/${secretPath}`, {
+        headers: {
+          "X-Vault-Token": token,
+        },
+      })
+    ).data;
   } catch (e) {
     throw e;
   }

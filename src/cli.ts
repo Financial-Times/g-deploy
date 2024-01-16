@@ -9,7 +9,7 @@ import * as meow from "meow";
 import * as parseGitHubURL from "parse-github-url";
 import Deployer, { IDeployerOptions } from "./Deployer";
 import help from "./help";
-import { git, verifyGitVersion, verifyOptions } from "./util";
+import { git, verifyGitVersion, listGitTags } from "./util";
 import vault from "./vault";
 
 interface ICLIFlags {
@@ -19,12 +19,11 @@ interface ICLIFlags {
   bucketName?: string;
   confirm?: boolean;
   getBranchUrl?: boolean;
-  getCommitUrl?: boolean;
+  getTagUrl?: boolean;
   localDir?: string;
   path?: string;
   preview?: string;
   projectName?: string | null;
-  sha?: string;
   tag?: string;
   targets?: Array<string | undefined>;
   vaultEndpoint?: string;
@@ -51,13 +50,13 @@ export default async () => {
     vaultRole: process.env.VAULT_ROLE,
     vaultSecret: process.env.VAULT_SECRET,
     vaultSecretPath: process.env.VAULT_SECRET_PATH,
-    writeVersionsJson: process.env.WRITE_VERSIONS_JSON || false,
+    writeVersionsJson: process.env.WRITE_VERSIONS_JSON || true,
   };
 
   const options = { ...defaults, ...(cli.flags as ICLIFlags) };
 
   // unless provided, magically infer the variables that determine our deploy targets
-  if (!options.projectName || !options.sha || !options.branchName) {
+  if (!options.projectName || !options.branchName) {
     await verifyGitVersion();
 
     // infer the project name from the GitHub repo name
@@ -77,11 +76,6 @@ export default async () => {
       options.projectName = repo;
     }
 
-    // use the SHA of the current commit
-    if (!options.sha) {
-      options.sha = (await git(["rev-parse", "--verify", "HEAD"])).trim();
-    }
-
     // use the name of the branch we're on now
     if (!options.branchName) {
       options.branchName = (
@@ -97,23 +91,26 @@ export default async () => {
   if (!options.awsRegion) {
     throw new Error("awsRegion not set");
   }
-  if (!options.sha) {
-    throw new Error("sha not set");
-  }
+
   if (!options.branchName) {
     throw new Error("branchName not set");
   }
 
-  // convert "sha", "branchName" and "tag" options into an array of targets
-  options.targets = [options.branchName, options.sha, options.tag].filter(
-    (i) => i
-  );
+  // By default, publish to the branchname
+  options.targets = [options.branchName];
+  if (options.tag) {
+    options.targets.push(options.tag);
+  } else if (!options.preview) {
+    // Infer any current tag from git and publish there (only in prod)
+    const tags = await listGitTags("HEAD");
+    options.targets.push(...tags);
+  }
 
   // construct our deployer
   const deployer = new Deployer(options as IDeployerOptions);
 
-  // handle special --get-branch-url or --get-commit-url use cases
-  if (options.getBranchUrl || options.getCommitUrl) {
+  // handle special --get-branch-url or --get-tag-url use cases
+  if (options.getBranchUrl || options.getTagUrl) {
     process.stdout.write(deployer.getURLs()[options.getBranchUrl ? 0 : 1]);
     process.exit();
   }
@@ -125,7 +122,6 @@ export default async () => {
       `  project name: ${options.projectName}\n` +
       `  branch name: ${options.branchName as string}\n` +
       `  tag: ${options.tag}\n` +
-      `  sha: ${options.sha as string}\n` +
       `  cache assets: ${options.cacheAssets}\n` +
       `  preview: ${options.preview}\n` +
       `  bucket: ${options.bucketName}\n`

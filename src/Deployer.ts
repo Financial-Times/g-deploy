@@ -23,7 +23,7 @@ export interface IDeployerOptions {
 
   projectName: string; // usually in the form 'ft-interactive/some-project'
 
-  targets: string[]; // for reference, the CLI provides two targets: the commit sha and branch name
+  targets: string[]; // for reference, the CLI provides two targets: the branch name and tag
 
   path?: string; // Set arbitrary S3 prefix instead of using existing path logic
 
