@@ -19,6 +19,8 @@ export interface IDeployerOptions {
   awsRegion?: string;
   bucketName: string;
 
+  cacheAssets: boolean; // whether to cache the assets/ dir forever
+
   projectName: string; // usually in the form 'ft-interactive/some-project'
 
   targets: string[]; // for reference, the CLI provides two targets: the commit sha and branch name
@@ -49,13 +51,12 @@ export default class Deployer extends EventEmitter {
       localDir,
       bucketName,
       projectName,
-      awsKey,
-      awsSecret,
       awsRegion,
       targets,
       path,
       preview,
       maxAge,
+      cacheAssets,
       otherOptions,
       writeVersionsJson,
     } = this.options;
@@ -101,9 +102,10 @@ export default class Deployer extends EventEmitter {
                 bucketName === "ft-ig-content-prod" ? "public-read" : undefined,
               Body: readFileSync(filePath as string),
               Bucket: bucketName,
-              CacheControl: filename.match(/^assets\//)
-                ? "max-age=365000000, immutable"
-                : `max-age=${typeof maxAge === "number" ? maxAge : 60}`,
+              CacheControl:
+                cacheAssets && filename.match(/^assets\//)
+                  ? "max-age=365000000, immutable"
+                  : `max-age=${typeof maxAge === "number" ? maxAge : 60}`,
               ContentType,
               Key: path
                 ? `${path}/${filename}`
@@ -128,6 +130,7 @@ export default class Deployer extends EventEmitter {
 
       await client
         .putObject({
+          ACL: bucketName === "ft-ig-content-prod" ? "public-read" : undefined,
           Body: JSON.stringify(tags || []),
           Bucket: bucketName,
           CacheControl: `max-age=${typeof maxAge === "number" ? maxAge : 60}`,

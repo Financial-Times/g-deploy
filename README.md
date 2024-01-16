@@ -38,11 +38,10 @@ $ g-deploy --help
     --project-name
     --sha - unique reference for this commit
     --branch-name - name of the branch you are deploying
-    --local-dir - what to upload; defaults to ./dist
+    --local-dir - what to upload; defaults to ./dist/client
     --path - ignore path logic and use a specified path instead. *_DANGER ZONE_ BE CAREFUL*
     --preview - upload files to preview folder
-    --assets-prefix - base for asset URLs; affects the rev-manifest and all
-                      HTML/CSS files
+    --cache-assets - if files in the @/assets/ dir are immutable (e.g. with a hash in the filename), cache them forever
 
   Other
     --help - show this help and exit

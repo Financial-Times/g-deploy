@@ -17,10 +17,7 @@ export default `
   )}
 
   ${cyan("AWS settings")}
-  ${grey(`If not provided, these settings are taken from env vars
-  ("AWS_KEY_PROD", "AWS_SECRET_PROD", etc.)`)}
-    --aws-key
-    --aws-secret
+  ${grey(`Authentication should follow the standard AWS env vars`)}
     --aws-region
     --bucket-name
 
@@ -31,8 +28,6 @@ export default `
     --branch-name - name of the branch you are deploying
     --local-dir - what to upload; defaults to ./dist
     --preview - upload files to preview folder
-    --assets-prefix - base for asset URLs; affects the rev-manifest and all
-                      HTML/CSS files
 
   ${cyan("Other")}
     --help - show this help and exit
