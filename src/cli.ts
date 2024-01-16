@@ -50,7 +50,7 @@ export default async () => {
     vaultRole: process.env.VAULT_ROLE,
     vaultSecret: process.env.VAULT_SECRET,
     vaultSecretPath: process.env.VAULT_SECRET_PATH,
-    writeVersionsJson: process.env.WRITE_VERSIONS_JSON || true,
+    writeVersionsJson: process.env.WRITE_VERSIONS_JSON,
   };
 
   const options = { ...defaults, ...(cli.flags as ICLIFlags) };
@@ -104,6 +104,9 @@ export default async () => {
     // Infer any current tag from git and publish there (only in prod)
     const tags = await listGitTags("HEAD");
     options.targets.push(...tags);
+
+    // If we're publishing a tag, default writeVersionsJson to true
+    options.writeVersionsJson = options.writeVersionsJson ?? true;
   }
 
   // construct our deployer
