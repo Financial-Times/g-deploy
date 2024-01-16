@@ -137,7 +137,9 @@ export default async () => {
   // ask for confirmation
   if (
     !options.confirm &&
-    !(await inquirer.prompt([{ type: "confirm", message: "Continue?" }]))
+    !(await inquirer.prompt([
+      { name: "deploy", type: "confirm", message: "Continue?" },
+    ]))
   ) {
     process.exit();
   }
