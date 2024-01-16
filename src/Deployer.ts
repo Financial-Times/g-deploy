@@ -102,7 +102,7 @@ export default class Deployer extends EventEmitter {
               Body: readFileSync(filePath as string),
               Bucket: bucketName,
               CacheControl:
-                cacheAssets && filename.match(/^assets\//)
+                cacheAssets && filename.match(/^(assets|static)\//)
                   ? "max-age=365000000, immutable"
                   : `max-age=${typeof maxAge === "number" ? maxAge : 60}`,
               ContentType,
