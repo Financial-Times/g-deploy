@@ -98,8 +98,7 @@ export default class Deployer extends EventEmitter {
 
           return client
             .putObject({
-              ACL:
-                bucketName === "ft-ig-content-prod" ? "public-read" : undefined,
+              ACL: preview ? undefined : "public-read",
               Body: readFileSync(filePath as string),
               Bucket: bucketName,
               CacheControl:
@@ -130,7 +129,7 @@ export default class Deployer extends EventEmitter {
 
       await client
         .putObject({
-          ACL: bucketName === "ft-ig-content-prod" ? "public-read" : undefined,
+          ACL: preview ? undefined : "public-read",
           Body: JSON.stringify(tags || []),
           Bucket: bucketName,
           CacheControl: `max-age=${typeof maxAge === "number" ? maxAge : 60}`,

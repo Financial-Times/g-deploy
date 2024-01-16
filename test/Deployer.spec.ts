@@ -64,7 +64,7 @@ describe("Deployer class", () => {
       );
       putObjectStub.callCount.should.equal(3);
       putObjectStub.should.have.been.calledWith({
-        ACL: undefined,
+        ACL: "public-read",
         Body: readFileSync(
           resolve(__dirname, "..", "fixture", "dist", "assets", "foo.abc123.js")
         ),
@@ -75,7 +75,7 @@ describe("Deployer class", () => {
         Metadata: { "x-amz-meta-surrogate-key": "my-key" },
       });
       putObjectStub.should.have.been.calledWith({
-        ACL: undefined,
+        ACL: "public-read",
         Body: readFileSync(
           resolve(__dirname, "..", "fixture", "dist", "index.html")
         ),
@@ -87,7 +87,7 @@ describe("Deployer class", () => {
       });
 
       putObjectStub.should.have.been.calledWith({
-        ACL: undefined,
+        ACL: "public-read",
         Body: readFileSync(
           resolve(
             __dirname,
@@ -124,7 +124,7 @@ describe("Deployer class", () => {
       );
       putObjectStub.callCount.should.equal(3);
       putObjectStub.should.have.been.calledWith({
-        ACL: undefined,
+        ACL: "public-read",
         Body: readFileSync(
           resolve(__dirname, "..", "fixture", "dist", "assets", "foo.abc123.js")
         ),
@@ -134,7 +134,7 @@ describe("Deployer class", () => {
         Key: `__arbitrary-path-test/assets/foo.abc123.js`,
       });
       putObjectStub.should.have.been.calledWith({
-        ACL: undefined,
+        ACL: "public-read",
         Body: readFileSync(
           resolve(__dirname, "..", "fixture", "dist", "index.html")
         ),
@@ -175,7 +175,7 @@ describe("Deployer class", () => {
     it("writes VERSIONS.json, allows preview", async () => {
       const newInst = new Deployer({
         awsRegion: "eu-west-1",
-        bucketName: "ft-ig-content-prod",
+        bucketName: "test-bucket",
         localDir: resolve(__dirname, "..", "fixture", "dist"),
         projectName: "test-project",
         targets: ["test"],
@@ -186,19 +186,19 @@ describe("Deployer class", () => {
 
       await newInst.execute();
       putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
+        ACL: undefined,
         Body: readFileSync(
           resolve(__dirname, "..", "fixture", "dist", "assets", "foo.abc123.js")
         ),
-        Bucket: "ft-ig-content-prod",
+        Bucket: "test-bucket",
         CacheControl: "max-age=60",
         ContentType: "application/javascript",
         Key: `preview/test-project/test/assets/foo.abc123.js`,
       });
       putObjectStub.should.have.been.calledWith({
-        ACL: "public-read",
+        ACL: undefined,
         Body: '["v1.0.0","v2.0.0","v3.0.0"]',
-        Bucket: "ft-ig-content-prod",
+        Bucket: "test-bucket",
         CacheControl: "max-age=60",
         ContentType: "application/json",
         Key: "preview/test-project/VERSIONS.json",
