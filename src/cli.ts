@@ -73,7 +73,7 @@ export default async () => {
         );
       }
 
-      options.projectName = repo;
+      options.projectName = repo?.toLowerCase();
     }
 
     // use the name of the branch we're on now
