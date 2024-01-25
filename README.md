@@ -86,7 +86,7 @@ Add a `.env` file that defines `AWS_KEY_DEV`, `AWS_SECRET_DEV`, `AWS_REGION_DEV`
 
 Run `yarn build -- --watch` and `yarn test -- --watch` in separate terminal tabs while developing. (The first one watches `src` and builds to `dist`. The second one runs ava tests in `dist`.)
 
-### Publishing a new version to npm
+### Publishing to NPM
 
 After you merge a pull request with a new feature, you should deploy it to NPM. To do so:
 
@@ -96,13 +96,13 @@ After you merge a pull request with a new feature, you should deploy it to NPM. 
 - Breaking (non-backwards-compatible) changes should be a `major` release
 - New features (that are backwards-compatible) should be `minor`
 - Bug fixes should be a `patch`
-  Alternatively, you can use `npm version vX.X.X` to set the version yourself.
+- Alternatively, you can use `npm version vX.X.X` to set the version yourself.
 
 3. Run `git push --follow-tags` to push the new version to GitHub, which will trigger the CircleCI pipeline that publishes the new version on NPM.
 
-#### Prerelease versions
+#### Pre-release ("canary") versions
 
-If you'd like to release a pre-release ("canary") version (e.g. to test or gradually roll out a new feature), you can create a new version like `npm version v10.0.0-canary.X`. (Increment the final `X` to make subsequent prerelease builds ahead of the same version.)
+If you'd like to release a pre-release version (e.g. to test or gradually roll out a new feature), you can create a new version like `npm version v10.0.0-canary.X`. Increment the final `X` to make subsequent prerelease builds ahead of the same version.
 
 NPM can also generate this automatically for you, with `npm version pre[patch|major|minor] --preid canary`.
 
