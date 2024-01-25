@@ -59,7 +59,7 @@ The most straightforward way:
 ```js
 import deploy from "@financial-times/g-deploy";
 
-deploy(options).then(baseURLs => {
+deploy(options).then((baseURLs) => {
   console.log("uploaded to:", baseURLs);
 });
 ```
@@ -71,7 +71,7 @@ import { Deployer } from "@financial-times/g-deploy";
 
 const deployer = new Deployer(options);
 
-deployer.execute().then(baseURLs => {
+deployer.execute().then((baseURLs) => {
   console.log("uploaded to:", baseURLs);
 });
 ```
@@ -88,12 +88,23 @@ Run `yarn build -- --watch` and `yarn test -- --watch` in separate terminal tabs
 
 ### Publishing a new version to npm
 
-- Make sure you're on main: `git checkout main`
-- `git fetch --tags`
-- `git tag v<new version number>`
-- `git push origin v<new version number>`
+After you merge a pull request with a new feature, you should deploy it to NPM. To do so:
 
-CircleCI will do the rest.
+1. Make sure you're on main: `git checkout main`
+2. Run `npm version [major|minor|patch]` to increment the version based on the type of changes in this release. We use [Semantic Versioning](https://semver.org/) to increment versions:
+
+- Breaking (non-backwards-compatible) changes should be a `major` release
+- New features (that are backwards-compatible) should be `minor`
+- Bug fixes should be a `patch`
+  Alternatively, you can use `npm version vX.X.X` to set the version yourself.
+
+3. Run `git push --follow-tags` to push the new version to GitHub, which will trigger the CircleCI pipeline that publishes the new version on NPM.
+
+#### Prerelease versions
+
+If you'd like to release a pre-release ("canary") version (e.g. to test or gradually roll out a new feature), you can create a new version like `npm version v10.0.0-canary.X`. (Increment the final `X` to make subsequent prerelease builds ahead of the same version.)
+
+NPM can also generate this automatically for you, with `npm version pre[patch|major|minor] --preid canary`.
 
 <!-- badge URLs -->
 
