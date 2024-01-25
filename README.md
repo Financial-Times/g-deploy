@@ -86,7 +86,7 @@ Add a `.env` file that defines `AWS_KEY_DEV`, `AWS_SECRET_DEV`, `AWS_REGION_DEV`
 
 Run `yarn build -- --watch` and `yarn test -- --watch` in separate terminal tabs while developing. (The first one watches `src` and builds to `dist`. The second one runs ava tests in `dist`.)
 
-### Publishing to NPM
+## Publishing to NPM
 
 After you merge a pull request with a new feature, you should deploy it to NPM. To do so:
 
@@ -100,7 +100,7 @@ After you merge a pull request with a new feature, you should deploy it to NPM. 
 
 3. Run `git push --follow-tags` to push the new version to GitHub, which will trigger the CircleCI pipeline that publishes the new version on NPM.
 
-#### Pre-release ("canary") versions
+### Pre-release ("canary") versions
 
 If you'd like to release a pre-release version (e.g. to test or gradually roll out a new feature), you can create a new version like `npm version v1.0.0-canary.0`. The version number should represent the ultimate release this change will land in, while the final `0` can be incremented to make subsequent prerelease builds.
 
