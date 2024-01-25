@@ -41,8 +41,14 @@ jobs:
           name: Setup npm credentials
           command: echo "//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}" > ${HOME}/.npmrc
       - run:
-          name: Publish npm package
-          command: ./node_modules/.bin/npm-prepublish --verbose && npm publish --access public
+          name: Publish to NPM
+          command: |
+            if [[ $CIRCLE_TAG =~ canary ]]
+            then
+              npm publish --access public --tag canary
+            else
+              npm publish --access public --tag latest
+            fi
 
 workflows:
   version: 2
