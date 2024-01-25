@@ -104,7 +104,7 @@ After you merge a pull request with a new feature, you should deploy it to NPM. 
 
 If you'd like to release a pre-release version (e.g. to test or gradually roll out a new feature), you can create a new version like `npm version v10.0.0-canary.X`. Increment the final `X` to make subsequent prerelease builds ahead of the same version.
 
-NPM can also generate this automatically for you, with `npm version pre[patch|major|minor] --preid canary`.
+NPM can also generate this automatically for you, with `npm version pre[major|minor|patch] --preid canary`.
 
 <!-- badge URLs -->
 
