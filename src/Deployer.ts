@@ -6,28 +6,30 @@
 
 import { S3 } from "aws-sdk";
 import { EventEmitter } from "events";
-import { createReadStream, readFileSync, writeFileSync } from "fs";
+import { readFileSync } from "fs";
 import { sync as glob } from "glob";
 import { lookup as mime } from "mime-types";
-import { extname, resolve } from "path";
-import { git, listGitTags } from "./util";
+import { extname, join } from "path";
+import { listGitTags } from "./util";
 
 export interface IDeployerOptions {
-  localDir: string; // e.g. '/path/to/dist'
+  dir: string; // e.g. '/path/to/dist'
   awsKey?: string;
   awsSecret?: string;
   awsRegion?: string;
-  bucketName: string;
+  bucket: string;
 
   cacheAssets: boolean; // whether to cache the assets/ dir forever
 
-  projectName: string; // usually in the form 'ft-interactive/some-project'
+  publicRead: boolean; // whether to apply a public-read ACL
+
+  project: string; // usually in the form 'ft-interactive/some-project'
+
+  urlBase?: string; // prefix for project name, e.g. 's3://v2/<project>'
 
   targets: string[]; // for reference, the CLI provides two targets: the branch name and tag
 
   path?: string; // Set arbitrary S3 prefix instead of using existing path logic
-
-  preview?: boolean;
 
   maxAge?: number; // for everything except checksum-ed files (in assets/ dir)
 
@@ -48,13 +50,13 @@ export default class Deployer extends EventEmitter {
 
   public async execute() {
     const {
-      localDir,
-      bucketName,
-      projectName,
+      dir,
+      bucket,
+      project,
+      publicRead,
       awsRegion,
       targets,
       path,
-      preview,
       maxAge,
       cacheAssets,
       otherOptions,
@@ -76,13 +78,13 @@ export default class Deployer extends EventEmitter {
       region: awsRegion,
     });
 
-    const allFiles: string[][] = glob(`${localDir}/**/*`, { nodir: true }).map(
-      (filePath) => [filePath, filePath.replace(`${localDir}/`, "")]
+    const allFiles: string[][] = glob(`${dir}/**/*`, { nodir: true }).map(
+      (filePath) => [filePath, filePath.replace(`${dir}/`, "")]
     );
 
-    const prefixes = path ? [path] : targets;
+    const dests = path ? [""] : targets;
 
-    await prefixes.reduce(async (queue: Promise<any[]>, target: string) => {
+    await dests.reduce(async (queue: Promise<any[]>, target: string) => {
       const acc = await queue;
       const uploadedTarget = Promise.all(
         allFiles.map(([filePath, filename]) => {
@@ -98,26 +100,22 @@ export default class Deployer extends EventEmitter {
 
           return client
             .putObject({
-              ACL: preview ? undefined : "public-read",
+              ACL: publicRead ? "public-read" : undefined,
               Body: readFileSync(filePath as string),
-              Bucket: bucketName,
+              Bucket: bucket,
               CacheControl:
                 cacheAssets && filename.match(/^(assets|static)\//)
                   ? "max-age=365000000, immutable"
                   : `max-age=${typeof maxAge === "number" ? maxAge : 60}`,
               ContentType,
-              Key: path
-                ? `${path}/${filename}`
-                : `${
-                    preview ? "preview" : "v2"
-                  }/${projectName}/${target}/${filename}`,
+              Key: this.getPath(filename, target),
               ...otherOptions,
             })
             .promise();
         })
       ).then(() => {
         this.emit("uploaded", {
-          info: `${target} (bundle)`,
+          info: `${path || target} (bundle)`,
         });
       });
 
@@ -129,25 +127,22 @@ export default class Deployer extends EventEmitter {
 
       await client
         .putObject({
-          ACL: preview ? undefined : "public-read",
+          ACL: publicRead ? "public-read" : undefined,
           Body: JSON.stringify(tags || []),
-          Bucket: bucketName,
+          Bucket: bucket,
           CacheControl: `max-age=${typeof maxAge === "number" ? maxAge : 60}`,
           ContentType: "application/json",
-          Key: path
-            ? `${path}/${VERSIONS_JSON_FILENAME}`
-            : `${
-                preview ? "preview" : "v2"
-              }/${projectName}/${VERSIONS_JSON_FILENAME}`,
+          Key: this.getPath(VERSIONS_JSON_FILENAME),
           ...otherOptions,
         })
         .promise()
         .then(() =>
           this.emit("uploaded", {
-            info: `${projectName} (modified versions: ${VERSIONS_JSON_FILENAME})`,
+            info: `${project} (modified versions: ${VERSIONS_JSON_FILENAME})`,
           })
         );
     }
+
     return this.getURLs();
   }
 
@@ -155,20 +150,32 @@ export default class Deployer extends EventEmitter {
    * Returns the base URLs that this deployer would deploy to.
    */
   public getURLs() {
-    const { bucketName, projectName, awsRegion, targets, path, preview } =
+    const { bucket, publicRead, awsRegion, targets, path, urlBase } =
       this.options;
 
+    const urls = path ? [path] : targets.map((t) => this.getPath("/", t));
+
+    const domain = publicRead
+      ? `http://${bucket}.s3-website-${awsRegion}.amazonaws.com`
+      : `https://${bucket}.s3.${awsRegion}.amazonaws.com`;
+
+    return urls.map((url) => `${domain}/${url}`);
+  }
+
+  private getPath(file: string, target = "") {
+    const { urlBase, path, project } = this.options;
+
+    const parts: Array<string | undefined> = [urlBase];
+
     if (path) {
-      return [
-        `http://${bucketName}.s3-website-${awsRegion}.amazonaws.com/${path}/`,
-      ];
+      parts.push(path);
+    } else {
+      parts.push(project, target);
     }
 
-    return targets.map(
-      (target) =>
-        `http://${bucketName}.s3-website-${awsRegion}.amazonaws.com/${
-          preview ? "preview" : "v2"
-        }/${projectName}/${target}/`
-    );
+    parts.push(file);
+
+    // Join non-empty path parts
+    return join(...parts.flatMap((s) => (s?.length ? [s] : [])));
   }
 }

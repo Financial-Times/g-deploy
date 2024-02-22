@@ -10,27 +10,25 @@ import * as parseGitHubURL from "parse-github-url";
 import Deployer, { IDeployerOptions } from "./Deployer";
 import help from "./help";
 import { git, verifyGitVersion, listGitTags } from "./util";
-import vault from "./vault";
 
 interface ICLIFlags {
+  preview?: boolean;
+  live?: boolean;
   cacheAssets?: string;
   awsRegion?: string;
-  branchName?: string;
-  bucketName?: string;
+  branch?: string;
+  bucket?: string;
+  project?: string | null;
   confirm?: boolean;
+  path?: string;
+  tag?: string;
   getBranchUrl?: boolean;
   getTagUrl?: boolean;
-  localDir?: string;
-  path?: string;
-  preview?: string;
-  projectName?: string | null;
-  tag?: string;
+  dir?: string;
+  urlBase?: string;
   targets?: Array<string | undefined>;
-  vaultEndpoint?: string;
-  vaultRole?: string;
-  vaultSecret?: string;
-  vaultSecretPath?: string;
   writeVersionsJson?: boolean;
+  publicRead?: boolean;
 }
 
 export default async () => {
@@ -39,28 +37,46 @@ export default async () => {
 
   // define our defaults - some of which come from environment variables
   const defaults = {
-    awsRegion: process.env.AWS_REGION_PROD || "eu-west-1",
-    bucketName: process.env.BUCKET_NAME_PROD,
+    awsRegion: process.env.AWS_REGION || "eu-west-1",
+    bucket: process.env.BUCKET_NAME,
     cacheAssets: true,
-    localDir: "dist",
+    dir: "dist/client",
+    urlBase: cli.flags.path ? undefined : "v2",
     path: undefined,
-    preview: false,
     tag: undefined,
-    vaultEndpoint: process.env.VAULT_ENDPOINT,
-    vaultRole: process.env.VAULT_ROLE,
-    vaultSecret: process.env.VAULT_SECRET,
-    vaultSecretPath: process.env.VAULT_SECRET_PATH,
+    branch: undefined,
     writeVersionsJson: process.env.WRITE_VERSIONS_JSON,
+    publicRead: false,
   };
 
-  const options = { ...defaults, ...(cli.flags as ICLIFlags) };
+  // 'preview' defaults, applied when the --preview flag is set
+  const preview = {
+    bucket: "djd-ig-preview",
+    urlBase: "preview",
+  };
+
+  // 'live' defaults, applied when the --live flag is set
+  const live = {
+    bucket: "djd-ig-live",
+    branch: "HEAD",
+    tag: "HEAD",
+    urlBase: "v3",
+    writeVersionsJson: true,
+  };
+
+  const options = {
+    ...defaults,
+    ...(cli.flags.preview ? preview : {}),
+    ...(cli.flags.live ? live : {}),
+    ...(cli.flags as ICLIFlags),
+  };
 
   // unless provided, magically infer the variables that determine our deploy targets
-  if (!options.projectName || !options.branchName) {
+  if (!options.project || !options.branch) {
     await verifyGitVersion();
 
     // infer the project name from the GitHub repo name
-    if (!options.projectName) {
+    if (!options.project) {
       const originURL = (
         await git(["config", "--get", "remote.origin.url"])
       ).trim();
@@ -73,40 +89,39 @@ export default async () => {
         );
       }
 
-      options.projectName = repo?.toLowerCase();
+      options.project = repo?.toLowerCase();
     }
 
     // use the name of the branch we're on now
-    if (!options.branchName) {
-      options.branchName = (
+    if (!options.branch) {
+      options.branch = (
         await git(["rev-parse", "--abbrev-ref", "--verify", "HEAD"])
       ).trim();
     }
   }
 
   // validate options
-  if (!options.bucketName) {
-    throw new Error("bucketName not set");
+  if (!options.bucket) {
+    throw new Error("bucket not set");
   }
   if (!options.awsRegion) {
     throw new Error("awsRegion not set");
   }
 
-  if (!options.branchName) {
+  if (!options.branch) {
     throw new Error("branchName not set");
   }
 
   // By default, publish to the branchname
-  options.targets = [options.branchName];
-  if (options.tag) {
-    options.targets.push(options.tag);
-  } else if (!options.preview && !options.path) {
-    // Infer any current tag from git and publish there (only in prod)
+  options.targets = [options.branch];
+
+  if (options.tag === "HEAD") {
+    options.tag = "(tags at HEAD)";
+    // Infer any current tags at git HEAD
     const tags = await listGitTags("HEAD");
     options.targets.push(...tags);
-
-    // If we're publishing a tag, default writeVersionsJson to true
-    options.writeVersionsJson = options.writeVersionsJson ?? true;
+  } else if (options.tag) {
+    options.targets.push(options.tag);
   }
 
   // construct our deployer
@@ -121,13 +136,15 @@ export default async () => {
   // report options (except secrets)
   console.log(
     "\nOptions:\n" +
-      `  local dir: ${options.localDir}\n` +
-      `  project name: ${options.projectName}\n` +
-      `  branch name: ${options.branchName as string}\n` +
+      "FROM\n" +
+      `  dir: ${options.dir}\n` +
+      "TO\n" +
+      `  bucket: ${options.bucket}\n` +
+      `  url base: ${options.urlBase}\n` +
+      `  project: ${options.project}\n` +
+      `  branch: ${options.branch as string}\n` +
       `  tag: ${options.tag}\n` +
-      `  cache assets: ${options.cacheAssets}\n` +
-      `  preview: ${options.preview}\n` +
-      `  bucket: ${options.bucketName}\n`
+      `  cache assets: ${options.cacheAssets}\n`
   );
 
   if (options.path) {

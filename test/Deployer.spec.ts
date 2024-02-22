@@ -31,16 +31,18 @@ describe("Deployer class", () => {
     putObjectStub.returns({ promise: () => Promise.resolve(true) });
     inst = new Deployer({
       awsRegion: "eu-west-1",
-      bucketName: "test-bucket",
+      bucket: "test-bucket",
       cacheAssets: true,
-      localDir: resolve(__dirname, "..", "fixture", "dist"),
+      dir: resolve(__dirname, "..", "fixture", "dist"),
       otherOptions: {
         Metadata: {
           "x-amz-meta-surrogate-key": "my-key",
         },
       },
-      projectName: "test-project",
+      project: "test-project",
       targets: ["test"],
+      urlBase: "v2",
+      publicRead: true,
     });
   });
 
@@ -109,18 +111,19 @@ describe("Deployer class", () => {
     it("allows arbitrary paths", async () => {
       const newInst = new Deployer({
         awsRegion: "eu-west-1",
-        bucketName: "test-bucket",
-        localDir: resolve(__dirname, "..", "fixture", "dist"),
+        bucket: "test-bucket",
+        dir: resolve(__dirname, "..", "fixture", "dist"),
         path: "__arbitrary-path-test",
         cacheAssets: true,
         maxAge: 3600,
+        publicRead: true,
       });
 
       const res = await newInst.execute();
 
       res.should.be.a("array");
       res[0].should.equal(
-        "http://test-bucket.s3-website-eu-west-1.amazonaws.com/__arbitrary-path-test/"
+        "http://test-bucket.s3-website-eu-west-1.amazonaws.com/__arbitrary-path-test"
       );
       putObjectStub.callCount.should.equal(3);
       putObjectStub.should.have.been.calledWith({
@@ -175,13 +178,14 @@ describe("Deployer class", () => {
     it("writes VERSIONS.json, allows preview", async () => {
       const newInst = new Deployer({
         awsRegion: "eu-west-1",
-        bucketName: "test-bucket",
-        localDir: resolve(__dirname, "..", "fixture", "dist"),
-        projectName: "test-project",
+        bucket: "test-bucket",
+        dir: resolve(__dirname, "..", "fixture", "dist"),
+        project: "test-project",
         targets: ["test"],
         writeVersionsJson: true,
         cacheAssets: false,
-        preview: true,
+        urlBase: "preview",
+        publicRead: false,
       });
 
       await newInst.execute();
