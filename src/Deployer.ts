@@ -152,9 +152,12 @@ export default class Deployer extends EventEmitter {
 
     const urls = path ? [path] : targets.map((t) => this.getPath("/", t));
 
-    const domain = publicRead
-      ? `http://${bucket}.s3-website-${awsRegion}.amazonaws.com`
-      : `https://${bucket}.s3.${awsRegion}.amazonaws.com`;
+    const domain =
+      bucket === "djd-ig-preview"
+        ? `https://ig.in.ft.com/`
+        : publicRead
+        ? `http://${bucket}.s3-website-${awsRegion}.amazonaws.com`
+        : `https://${bucket}.s3.${awsRegion}.amazonaws.com`;
 
     return urls.map((url) => `${domain}/${url}`);
   }
