@@ -15,7 +15,6 @@ interface ICLIFlags {
   preview?: boolean;
   live?: boolean;
   cacheAssets?: string;
-  awsRegion?: string;
   branch?: string;
   bucket?: string;
   project?: string | null;
@@ -51,12 +50,14 @@ export default async () => {
 
   // 'preview' defaults, applied when the --preview flag is set
   const preview = {
+    awsRegion: "eu-west-1",
     bucket: "djd-ig-preview",
     urlBase: "preview",
   };
 
   // 'live' defaults, applied when the --live flag is set
   const live = {
+    awsRegion: "eu-west-1",
     bucket: "djd-ig-live",
     branch: "HEAD",
     tag: "HEAD",

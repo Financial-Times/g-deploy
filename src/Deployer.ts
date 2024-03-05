@@ -14,8 +14,7 @@ import { listGitTags } from "./util";
 
 export interface IDeployerOptions {
   dir: string; // e.g. '/path/to/dist'
-  awsKey?: string;
-  awsSecret?: string;
+
   awsRegion?: string;
   bucket: string;
 
@@ -74,9 +73,7 @@ export default class Deployer extends EventEmitter {
     }
 
     // make an S3 client instance
-    const client = new S3({
-      region: awsRegion,
-    });
+    const client = new S3();
 
     const allFiles: string[][] = glob(`${dir}/**/*`, { nodir: true }).map(
       (filePath) => [filePath, filePath.replace(`${dir}/`, "")]
