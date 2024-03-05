@@ -18,7 +18,9 @@ $ npm i @financial-times/g-deploy
 $ g-deploy --help
 CLI for deploying FT Graphics projects
 
-  > g-deploy [FLAGS...]
+  > g-deploy [FLAGS...] <dir>
+
+  <dir> - Path to the directory you want to upload (default: ./dist/client)
 
   Settings Presets
   These provide default values for bucket, project, branch, etc
@@ -43,7 +45,6 @@ CLI for deploying FT Graphics projects
     --project - Name of the project, defaults to current git repo (e.g. ft-interactive/some-story)
     --branch - Name of the branch you are deploying, defaults to current in git
     --tag - Tagged version to deploy
-    --dir - What to upload; defaults to ./dist/client
     --url-base - First component of the URL to upload to, defaults to 'v2'
 
   Other

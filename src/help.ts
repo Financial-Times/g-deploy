@@ -8,6 +8,8 @@ const { cyan, grey } = chalk;
 export default `
   ${grey(">")} g-deploy ${grey("[FLAGS...]")}
 
+  <dir> - Path to the directory you want to upload (default: ./dist/)
+
   ${cyan("Settings Presets")}
   ${grey("These provide default values for bucket, project, branch, etc")}
     --preview - For deploying to our okta-protected preview environment
@@ -35,7 +37,6 @@ export default `
     --project - Name of the project, defaults to current git repo (e.g. ft-interactive/some-story)
     --branch - Name of the branch you are deploying, defaults to current in git
     --tag - Tagged version to deploy
-    --dir - What to upload; defaults to ./dist/client
     --url-base - First component of the URL to upload to, defaults to 'v2'
 
   ${cyan("Other")}

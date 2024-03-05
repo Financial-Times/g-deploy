@@ -50,6 +50,7 @@ export default async () => {
 
   // 'preview' defaults, applied when the --preview flag is set
   const preview = {
+    dir: "dist/client",
     awsRegion: "eu-west-1",
     bucket: "djd-ig-preview",
     urlBase: "preview",
@@ -57,6 +58,7 @@ export default async () => {
 
   // 'live' defaults, applied when the --live flag is set
   const live = {
+    dir: "dist/client",
     awsRegion: "eu-west-1",
     bucket: "djd-ig-live",
     branch: "HEAD",
@@ -70,6 +72,7 @@ export default async () => {
     ...(cli.flags.preview ? preview : {}),
     ...(cli.flags.live ? live : {}),
     ...(cli.flags as ICLIFlags),
+    ...(cli.input.length ? { dir: cli.input[0] } : {}),
   };
 
   // unless provided, magically infer the variables that determine our deploy targets
