@@ -16,40 +16,43 @@ $ npm i @financial-times/g-deploy
 
 ```
 $ g-deploy --help
+CLI for deploying FT Graphics projects
 
-  CLI for deploying FT Graphics projects
+  > g-deploy [FLAGS...] <dir>
 
-  > g-deploy [FLAGS...]
+  <dir> - Path to the directory you want to upload (default: ./dist/client)
+
+  Settings Presets
+  These provide default values for bucket, project, branch, etc
+    --preview - For deploying to our okta-protected preview environment
+        expands to: --bucket djd-ig-preview --url-base preview
+    --live - To make pages available in ig-router
+        expands to: --bucket djd-ig-live --url-base v3 --branch HEAD --tag HEAD --write-versions-json
+
   ────────────────────────────────────────────────────────────────────
-  All flags are optional when this command is run from a typical FT
+  The remaining flags are optional when this command is run from a typical FT
   Graphics project repo in CI.
   ────────────────────────────────────────────────────────────────────
 
   AWS settings
-  If not provided, these settings are taken from env vars
-  ("AWS_KEY_PROD", "AWS_SECRET_PROD", etc.)
-    --aws-key
-    --aws-secret
-    --aws-region
-    --bucket-name
+  Authentication should follow the standard AWS env vars or profile
+    --bucket - S3 bucket to upload to, defaults to BUCKET_NAME env
+    --public-read - Whether to apply a public-read ACL to the files uploaded
+    --aws-region - AWS region the bucket lives in, defaults to AWS_REGION env or 'eu-west-1'
 
   Upload settings
   If not provided, these are deduced from the git status in the CWD.
-    --project-name
-    --sha - unique reference for this commit
-    --branch-name - name of the branch you are deploying
-    --local-dir - what to upload; defaults to ./dist
-    --path - ignore path logic and use a specified path instead. *_DANGER ZONE_ BE CAREFUL*
-    --preview - upload files to preview folder
-    --assets-prefix - base for asset URLs; affects the rev-manifest and all
-                      HTML/CSS files
+    --project - Name of the project, defaults to current git repo (e.g. ft-interactive/some-story)
+    --branch - Name of the branch you are deploying, defaults to current in git
+    --tag - Tagged version to deploy
+    --url-base - First component of the URL to upload to, defaults to 'v2'
 
   Other
     --help - show this help and exit
     --get-branch-url - instead of deploying, just print the URL it would deploy to
-    --get-commit-url - as above, but get the commit-specific URL
+    --get-tag-url - as above, but get the tag-specific URL
     --confirm - skip the confirmation dialogue when deploying
-    --write-versions-json - writes a VERSIONS.json file containing all published repo versions
+    --write-versions-json - write a VERSIONS.json file at the project base containing every version number
 ```
 
 ## JavaScript API
@@ -81,8 +84,6 @@ The JavaScript API does **not** do any git-sniffing or use any environment varia
 ## Development
 
 Clone this repo and run `yarn` to install dependencies.
-
-Add a `.env` file that defines `AWS_KEY_DEV`, `AWS_SECRET_DEV`, `AWS_REGION_DEV` and `BUCKET_NAME_DEV`. (These are used in tests.)
 
 Run `yarn build -- --watch` and `yarn test -- --watch` in separate terminal tabs while developing. (The first one watches `src` and builds to `dist`. The second one runs ava tests in `dist`.)
 

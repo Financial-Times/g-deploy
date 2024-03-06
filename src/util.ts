@@ -10,8 +10,6 @@ export const git = async (args: string[]) => {
   const { stdout, stderr } = await execa("git", args);
   if (stderr) {
     throw new Error(stderr);
-  } else if (!stdout) {
-    throw new Error("No git output");
   }
 
   return stdout;
@@ -70,9 +68,11 @@ interface IVerifyOptions {
   [key: string]: any;
 }
 
-export const listGitTags = async () =>
-  (await git(["tag"]))
+export const listGitTags = async (at?: string) => {
+  const output = await git(at ? ["tag", "--points-at", at] : ["tag"]);
+  return output
     .split("\n")
     .map((v) => v.trim())
     .filter((v) => /^v\d/.test(v))
     .sort();
+};

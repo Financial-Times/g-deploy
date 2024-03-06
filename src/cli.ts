@@ -9,31 +9,25 @@ import * as meow from "meow";
 import * as parseGitHubURL from "parse-github-url";
 import Deployer, { IDeployerOptions } from "./Deployer";
 import help from "./help";
-import { git, verifyGitVersion, verifyOptions } from "./util";
-import vault from "./vault";
+import { git, verifyGitVersion, listGitTags } from "./util";
 
 interface ICLIFlags {
-  assetsPrefix?: string;
-  awsKey?: string;
-  awsRegion?: string;
-  awsSecret?: string;
-  branchName?: string;
-  bucketName?: string;
+  preview?: boolean;
+  live?: boolean;
+  cacheAssets?: string;
+  branch?: string;
+  bucket?: string;
+  project?: string | null;
   confirm?: boolean;
-  getBranchUrl?: boolean;
-  getCommitUrl?: boolean;
-  localDir?: string;
   path?: string;
-  preview?: string;
-  projectName?: string | null;
-  sha?: string;
   tag?: string;
+  getBranchUrl?: boolean;
+  getTagUrl?: boolean;
+  dir?: string;
+  urlBase?: string;
   targets?: Array<string | undefined>;
-  vaultEndpoint?: string;
-  vaultRole?: string;
-  vaultSecret?: string;
-  vaultSecretPath?: string;
   writeVersionsJson?: boolean;
+  publicRead?: boolean;
 }
 
 export default async () => {
@@ -42,29 +36,51 @@ export default async () => {
 
   // define our defaults - some of which come from environment variables
   const defaults = {
-    awsKey: process.env.AWS_KEY_PROD,
-    awsRegion: process.env.AWS_REGION_PROD || "eu-west-1",
-    awsSecret: process.env.AWS_SECRET_PROD,
-    bucketName: process.env.BUCKET_NAME_PROD,
-    localDir: "dist",
+    awsRegion: process.env.AWS_REGION || "eu-west-1",
+    bucket: process.env.BUCKET_NAME,
+    cacheAssets: true,
+    dir: "dist/client",
+    urlBase: cli.flags.path ? undefined : "v2",
     path: undefined,
-    preview: false,
     tag: undefined,
-    vaultEndpoint: process.env.VAULT_ENDPOINT,
-    vaultRole: process.env.VAULT_ROLE,
-    vaultSecret: process.env.VAULT_SECRET,
-    vaultSecretPath: process.env.VAULT_SECRET_PATH,
-    writeVersionsJson: process.env.WRITE_VERSIONS_JSON || false,
+    branch: undefined,
+    writeVersionsJson: process.env.WRITE_VERSIONS_JSON,
+    publicRead: false,
   };
 
-  const options = { ...defaults, ...(cli.flags as ICLIFlags) };
+  // 'preview' defaults, applied when the --preview flag is set
+  const preview = {
+    dir: "dist/client",
+    awsRegion: "eu-west-1",
+    bucket: "djd-ig-preview",
+    urlBase: "preview",
+  };
+
+  // 'live' defaults, applied when the --live flag is set
+  const live = {
+    dir: "dist/client",
+    awsRegion: "eu-west-1",
+    bucket: "djd-ig-live",
+    branch: "HEAD",
+    tag: "HEAD",
+    urlBase: "v3",
+    writeVersionsJson: true,
+  };
+
+  const options = {
+    ...defaults,
+    ...(cli.flags.preview ? preview : {}),
+    ...(cli.flags.live ? live : {}),
+    ...(cli.flags as ICLIFlags),
+    ...(cli.input.length ? { dir: cli.input[0] } : {}),
+  };
 
   // unless provided, magically infer the variables that determine our deploy targets
-  if (!options.projectName || !options.sha || !options.branchName) {
+  if (!options.project || !options.branch) {
     await verifyGitVersion();
 
     // infer the project name from the GitHub repo name
-    if (!options.projectName) {
+    if (!options.project) {
       const originURL = (
         await git(["config", "--get", "remote.origin.url"])
       ).trim();
@@ -77,74 +93,46 @@ export default async () => {
         );
       }
 
-      options.projectName = repo;
-    }
-
-    // use the SHA of the current commit
-    if (!options.sha) {
-      options.sha = (await git(["rev-parse", "--verify", "HEAD"])).trim();
+      options.project = repo?.toLowerCase();
     }
 
     // use the name of the branch we're on now
-    if (!options.branchName) {
-      options.branchName = (
+    if (!options.branch) {
+      options.branch = (
         await git(["rev-parse", "--abbrev-ref", "--verify", "HEAD"])
       ).trim();
     }
   }
 
-  if (
-    !process.env.DOPPLER_TOKEN && // Don't overwrite Doppler values
-    options.vaultRole &&
-    options.vaultSecret &&
-    options.vaultEndpoint &&
-    options.vaultSecretPath
-  ) {
-    try {
-      const result = await vault(
-        options.vaultRole,
-        options.vaultSecret,
-        options.vaultEndpoint,
-        options.vaultSecretPath
-      );
-      const { AWS_KEY_PROD, AWS_SECRET_PROD } = result.data;
-
-      if (AWS_KEY_PROD && AWS_SECRET_PROD) {
-        options.awsKey = AWS_KEY_PROD;
-        options.awsSecret = AWS_SECRET_PROD;
-      }
-    } catch (e: any) {
-      console.error(`Vault error: ${e.message}`);
-    }
-  }
-
   // validate options
-  if (!options.bucketName) {
-    throw new Error("bucketName not set");
+  if (!options.bucket) {
+    throw new Error("bucket not set");
   }
   if (!options.awsRegion) {
     throw new Error("awsRegion not set");
   }
-  if (!options.sha) {
-    throw new Error("sha not set");
-  }
-  if (!options.branchName) {
+
+  if (!options.branch) {
     throw new Error("branchName not set");
   }
 
-  // convert "sha", "branchName" and "tag" options into an array of targets
-  options.targets = [options.branchName, options.sha, options.tag].filter(
-    (i) => i
-  );
+  // By default, publish to the branchname
+  options.targets = [options.branch];
 
-  // Ensure the required options exist; throw otherwise
-  verifyOptions(options);
+  if (options.tag === "HEAD") {
+    options.tag = "(tags at HEAD)";
+    // Infer any current tags at git HEAD
+    const tags = await listGitTags("HEAD");
+    options.targets.push(...tags);
+  } else if (options.tag) {
+    options.targets.push(options.tag);
+  }
 
   // construct our deployer
   const deployer = new Deployer(options as IDeployerOptions);
 
-  // handle special --get-branch-url or --get-commit-url use cases
-  if (options.getBranchUrl || options.getCommitUrl) {
+  // handle special --get-branch-url or --get-tag-url use cases
+  if (options.getBranchUrl || options.getTagUrl) {
     process.stdout.write(deployer.getURLs()[options.getBranchUrl ? 0 : 1]);
     process.exit();
   }
@@ -152,13 +140,15 @@ export default async () => {
   // report options (except secrets)
   console.log(
     "\nOptions:\n" +
-      `  local dir: ${options.localDir}\n` +
-      `  project name: ${options.projectName}\n` +
-      `  branch name: ${options.branchName as string}\n` +
+      "FROM\n" +
+      `  dir: ${options.dir}\n` +
+      "TO\n" +
+      `  bucket: ${options.bucket}\n` +
+      `  url base: ${options.urlBase}\n` +
+      `  project: ${options.project}\n` +
+      `  branch: ${options.branch as string}\n` +
       `  tag: ${options.tag}\n` +
-      `  sha: ${options.sha as string}\n` +
-      `  assets prefix: ${options.assetsPrefix}\n` +
-      `  preview: ${options.preview}\n`
+      `  cache assets: ${options.cacheAssets}\n`
   );
 
   if (options.path) {
@@ -168,7 +158,9 @@ export default async () => {
   // ask for confirmation
   if (
     !options.confirm &&
-    !(await inquirer.prompt([{ type: "confirm", message: "Continue?" }]))
+    !(await inquirer.prompt([
+      { name: "deploy", type: "confirm", message: "Continue?" },
+    ]))
   ) {
     process.exit();
   }
