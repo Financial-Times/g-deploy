@@ -139,10 +139,9 @@ export default async () => {
 
   // report options (except secrets)
   console.log(
-    "\nOptions:\n" +
-      "FROM\n" +
+    "g-deploy: Deploying from...\n" +
       `  dir: ${options.dir}\n` +
-      "TO\n" +
+      "to...\n" +
       `  bucket: ${options.bucket}\n` +
       `  url base: ${options.urlBase}\n` +
       `  project: ${options.project}\n` +
