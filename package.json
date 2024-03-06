@@ -1,7 +1,7 @@
 {
   "name": "@financial-times/g-deploy",
   "description": "CLI for deploying FT Graphics projects",
-  "version": "4.0.0-canary.9",
+  "version": "4.0.0",
   "bin": {
     "g-deploy": "./cli.js",
     "ft-graphics-deploy": "./cli.js"
