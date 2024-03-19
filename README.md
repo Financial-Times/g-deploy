@@ -79,7 +79,7 @@ deployer.execute().then((baseURLs) => {
 });
 ```
 
-The JavaScript API does **not** do any git-sniffing or use any environment variables to configure the deployment – you must pass in all required options manually. See the [Deployer class](./src/Deployer.js) source for the full options.
+The JavaScript API does **not** do any git-sniffing or use any environment variables to configure the deployment – you must pass in all required options manually. See the [Deployer class](./src/Deployer.ts) source for the full options.
 
 ## Development
 
