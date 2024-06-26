@@ -4,7 +4,7 @@ CLI for deploying built static websites to an S3 bucket.
 
 ## How to use
 
-Requires Node 8 or higher.
+Requires Node 20 or higher.
 
 To install:
 
